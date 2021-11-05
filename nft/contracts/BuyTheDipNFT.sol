@@ -25,11 +25,9 @@ import "interfaces/IERC20.sol";
 //    1 year limitation on redeeming, 1% penalty + interest + destroy NFT
 
 
-// library borrowed from BabyDoge
 library UniswapHelpers {
 
-//    UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[newItemId], USDTAddress, address(this), tokenPair, router, swapSlippage);
-    function _swapExactTokensForETH(uint256 tokenAmount, address tokenContractAddress, address to, address _pair, IUniswapV2Router02 _router, uint256 _swapSlippage) internal  returns (bool){
+    function _swapExactTokensForETH(uint256 tokenAmount, address tokenContractAddress, address to, address _pair, IUniswapV2Router02 _router, uint256 _swapSlippage) internal  returns (uint256, uint256){
         address[] memory path = new address[](2);
         path[0] = tokenContractAddress; //address(0x3B00Ef435fA4FcFF5C209a37d1f3dcff37c705aD); // USDT Rinkeby
         path[1] = _router.WETH();
@@ -41,13 +39,13 @@ library UniswapHelpers {
             (uint256 Res0, uint256 Res1,) = IUniswapV2Pair(_tokenPair).getReserves(); // baby doge is Res0
 
             require(Res1!=0, "No tokens in Res1");
-            uint256 ETHPricePerBabyDoge =  (10**18)*Res1/Res0; // For 10**18, // baby doge is Res0
+            uint256 ETHPricePerBabyDoge =  (10**18)*Res1/Res0;
             require(ETHPricePerBabyDoge!=0, "ETHPricePerBabyDoge equals zero."); // why? Not dividing by zero anyore
-            minTokensToReceive = tokenAmount * (10000 - _swapSlippage) * ETHPricePerBabyDoge;
+            minTokensToReceive = tokenAmount * (10000 - _swapSlippage);
+            minTokensToReceive = minTokensToReceive * ETHPricePerBabyDoge;
             minTokensToReceive = minTokensToReceive / 10**18  / 10000; // ETH TO RECEIVE
         }
 
-        // todo: ETH_TRANSFER_FAILED -- it may be because not payable or allowance wasn't set
         uint256[] memory amounts = _router.swapExactTokensForETH(
             tokenAmount,
             minTokensToReceive, // set _swapSlippage to 10000 to accept anything
@@ -57,8 +55,7 @@ library UniswapHelpers {
         );
 
         require(amounts[0] != 0 && 0 != amounts[1], "swapExactETH failed.");
-//        return (amounts[0], amounts[1]);
-        return true;
+        return (amounts[0], amounts[1]);
     }
 
     function _addLiquidity(uint256 tokenAmount, address contractAddress, IUniswapV2Router02 _router, uint256 newBalance) internal returns(uint256) {
@@ -76,31 +73,11 @@ library UniswapHelpers {
 
     function _swapEthForTokens(uint256 ethAmount, address tokenContractAddress, address to, IUniswapV2Router02 _router, uint256 _swapSlippage) internal returns (uint256, uint256) {
         address[] memory path = new address[](2);
-//        path[0] = _router.WETH();
-//        path[1] = tokenContractAddress;
         path[0] = _router.WETH();
-//        path[1] = address(0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47); // BUSD BSC Testnet
         path[1] = tokenContractAddress; //address(0x3B00Ef435fA4FcFF5C209a37d1f3dcff37c705aD); // USDT Rinkeby
 
-        // NOTE -- Not all functionality exists on PancakeSwap as does Uniswap
-
-//        IUniswapV2Factory _UFactory = IUniswapV2Factory(_router.factory());
-//        address _tokenPair = _UFactory.getPair(_router.WETH(), tokenContractAddress);
-
-//        path[1] = IUniswapV2Pair(_tokenPair).token1();
-//        console.log('path[1]: ');
-//        console.log(path[1]);
-//        console.log('Price of asset 0, 1: ');
 //        console.log(IUniswapV2Pair(_tokenPair).price0CumulativeLast());
 //        console.log(IUniswapV2Pair(_tokenPair).price1CumulativeLast());
-
-//        (uint256 Res0, uint256 Res1,) = IUniswapV2Pair(_tokenPair).getReserves(); // baby doge is Res0
-//
-//        require(Res0 !=0, "No tokens in Res0");
-//        uint256 BabyDogePricePerETH =  ((10**18)*Res0)/Res1; // For 10**18 BabyDoge
-//
-//        require(BabyDogePricePerETH!=0, "BabyDogePricePerETH equals zero.");
-
 
 
         uint256 minTokensToReceive;
@@ -116,11 +93,6 @@ library UniswapHelpers {
             minTokensToReceive = minTokensToReceive / (10**18) / 10000;
         }
 
-
-//        uint256 minTokensToReceive = ethAmount * (10000 - _swapSlippage) * BabyDogePricePerETH / (10**18) / 10000;
-
-//        uint256 minTokensToReceive = 0;
-
         uint256[] memory amounts = _router.swapExactETHForTokens{value: ethAmount}( // ethAmount, path, to, block.timestamp ){ //ExactTokensForETHSupportingFeeOnTransferTokens(
             minTokensToReceive,
             path,
@@ -131,42 +103,7 @@ library UniswapHelpers {
         require(amounts[0] != 0 && 0 != amounts[1], "swapExactETH failed.");
         return (amounts[0], amounts[1]);
     }
-
-
-    function _swapEthForTokens999(uint256 ethAmount, address contractAddress, address to, address _tokenPair, IUniswapV2Router02 _router, uint256 _swapSlippage) internal returns (uint256[] memory) {
-        address[] memory path = new address[](2);
-//        path[0] = _router.WETH();
-//        path[1] = contractAddress;
-        path[0] = _router.WETH();
-        path[1] = IUniswapV2Pair(_tokenPair).token1();
-        console.log('path[1]: ');
-        console.log(path[1]);
-        console.log('Price of asset 0, 1: ');
-        console.log(IUniswapV2Pair(_tokenPair).price0CumulativeLast());
-        console.log(IUniswapV2Pair(_tokenPair).price1CumulativeLast());
-
-        (uint256 Res0, uint256 Res1,) = IUniswapV2Pair(_tokenPair).getReserves(); // baby doge is Res0
-
-        require(Res0 !=0, "No tokens in Res0");
-        uint256 BabyDogePricePerETH =  ((10**18)*Res0)/Res1; // For 10**18 BabyDoge
-
-        require(BabyDogePricePerETH!=0, "BabyDogePricePerETH equals zero.");
-
-        uint256 minTokensToReceive = ethAmount * (10000 - _swapSlippage) * BabyDogePricePerETH / (10**18) / 10000;
-
-        uint256[] memory amounts = _router.swapExactETHForTokens{value: ethAmount}( // ethAmount, path, contractAddress, block.timestamp ){ //ExactTokensForETHSupportingFeeOnTransferTokens(
-            minTokensToReceive,
-            path,
-            to,
-            block.timestamp + 360 // 30 minutes before reverting
-        );
-
-        require(amounts[0] != 0 && 0 != amounts[1], "swapExactETH failed.");
-        return amounts;
-    }
 }
-
-
 
 
 // VRFConsumerBase,
@@ -212,8 +149,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
 event Received(address sender, uint amount);
 
-
-   modifier onlyKeeper {
+    modifier onlyKeeper {
        require(true);
        //require(msg.sender == owner); // ToDo: modify
       _;
@@ -231,9 +167,6 @@ event Received(address sender, uint amount);
         priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e); // Rinkeby
 //        priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331) // Kovan
         lastTimeStamp = block.timestamp;
-
-//        // temp
-//        HELPER();
     }
 
     function createCollectible(uint32 percentDrop)
@@ -241,7 +174,6 @@ event Received(address sender, uint amount);
             require (msg.value >= 10**14, "Not Enough BNB--or whatever");
             require(percentDrop < 100, "Percent X must conform to: 10 <= X < 100"); // todo: adjust 10% after testing
 
-            // Standard, non randomness
             uint256 newItemId = tokenCounter;
             tokenCounter = tokenCounter + 1;
             _safeMint(msg.sender, newItemId);
@@ -252,14 +184,16 @@ event Received(address sender, uint amount);
 
             tokenIdToStableCoin[newItemId] = swapETHForTokens(newItemId, msg.value);
             totalStableCoin += tokenIdToStableCoin[newItemId];
+            tokenIdToIsWaitingToBuy[newItemId] = true;
 
-            addy = address(router);
-            MESSAGE = uint2str(uint256(tokenIdToStableCoin[newItemId]));
+            // toDo: Loan out stablecoin (if above threshold?)
 
             if(newItemId==1) { // temp todo: remove
-                IERC20(USDTAddress).approve(address(router), tokenIdToStableCoin[newItemId]);
-                UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[newItemId], USDTAddress, address(this), tokenPair, router, swapSlippage);
-                //                performUpkeepTest();
+//                IERC20(USDTAddress).approve(address(router), tokenIdToStableCoin[newItemId]);
+////                UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[newItemId], USDTAddress, address(this), tokenPair, router, swapSlippage);
+//                (ETHSENT, USDTRECEIVED) = UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[newItemId], USDTAddress, ownerOf(newItemId), tokenPair, router, swapSlippage);
+//                MESSAGE = uint2str(USDTRECEIVED);
+                performUpkeepTest();
             }
 
 //             emit requestedCollectible(newItemId);
@@ -281,24 +215,46 @@ event Received(address sender, uint amount);
         return tokensBought;
     }
 
+    // Required to receive ETH
     receive() external payable {
         emit Received(msg.sender, msg.value);
     }
+
+
+    function reclaimFundsNoInterest(uint256 _tokenId, int256 _dipLevel) public returns(bool) {
+        require(msg.sender != ownerOf(_tokenId), "Must be token owner.")
+
+        IERC20(USDTAddress).approve(address(router), tokenIdToStableCoin[_tokenId]);
+        (ETHSent, USDTReceived) = UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[_tokenId], USDTAddress, ownerOf(_tokenId), tokenPair, router, swapSlippage);
+
+        return true;
+    }
+
 
 
     function buyTheDip(uint256 _tokenId, int256 _dipLevel) public onlyKeeper returns(bool) {
         // Confirm price
         require(tokenIdToDipValue[_tokenId] <= getLatestPrice(), 'Price above dipLevel');
         uint256 initialBalance = address(this).balance;
-        UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[_tokenId], USDTAddress, address(this), tokenPair, router, swapSlippage);
-        uint256 finalBalance = address(this).balance;
-        // send ETH to owner.
-        address tokenOwner = ownerOf(_tokenId);
+        uint256 ETHSent;
+        uint256 USDTReceived;
 
-        uint256 amountReleased = finalBalance - initialBalance;
-        (bool success, ) = tokenOwner.call{value : amountReleased}("Releasing ETH to NFT owner");
-        require(success, "Transfer failed.");
-        emit CoinsReleasedToOwner(amountReleased, block.timestamp);
+        IERC20(USDTAddress).approve(address(router), tokenIdToStableCoin[_tokenId]);
+        (ETHSent, USDTReceived) = UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[_tokenId], USDTAddress, ownerOf(_tokenId), tokenPair, router, swapSlippage);
+
+//        addy = ownerOf(_tokenId);
+//        MESSAGE = uint2str(IERC20(USDTAddress).balanceOf(ownerOf(_tokenId)));
+//        uint256 finalBalance = address(this).balance; // should equal USDTReceived
+
+        // send ETH to owner.
+//        address tokenOwner = ownerOf(_tokenId);
+
+        // handled automatically!
+//        uint256 amountReleased = finalBalance - initialBalance;
+//        (bool success, ) = tokenOwner.call{value : amountReleased}("Releasing ETH to NFT owner");
+//        require(success, "Transfer failed.");
+
+        emit CoinsReleasedToOwner(USDTReceived, block.timestamp);
         tokenIdToStableCoin[_tokenId] = 0;
         tokenIdToIsWaitingToBuy[_tokenId] = false;
 //        tokenIdToDipLevel[_tokenId] += 1; // todo -- mechanism somewhere to prevent going above 7
@@ -340,8 +296,9 @@ event Received(address sender, uint amount);
         for(uint256 i=0;i<tokenCounter;i++){
             if (tokenIdToIsWaitingToBuy[i] == true) {
                 if (tokenIdToDipValue[i] >= latestPrice ){
-                    dip_bought = buyTheDip(i, tokenIdToDipValue[i]);
-//                    if (dip_bought) {
+                    dip_bought = buyTheDip(i, tokenIdToDipValue[i]); // no need to send in second parameter
+
+                    //                    if (dip_bought) {
 //                        tokenIdToDipLevel[i]++; // handle where?
 //                    }
                 }
