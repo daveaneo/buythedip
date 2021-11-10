@@ -106,6 +106,34 @@ library UniswapHelpers {
 }
 
 
+contract DipStaking is Ownable  {
+    BuyTheDipNFT public BTD;
+    mapping(uint256=>address) public previousOwner;
+    mapping(uint256=>uint256) public removalTime; // we went to disencentivize people who game the system? Maybe don' need to worry
+    mapping(uint256=>uint256) public moneys; // we went to disencentivize people who game the system? Maybe don' need to worry
+    uint256 public moneysReceived;
+
+    constructor(address _BuyTheDipNFTAddress) public {
+        // set _BuyTheDipNFTAddress
+        BTD = BuyTheDipNFT(payable(_BuyTheDipNFTAddress));
+    }
+
+    receive() external payable{
+      // when receiving ETH, split it equally among all stakers and founders/owners
+      // create clever way to not spend a lot of gas
+
+    }
+
+    function stake() external {
+        // receive tokens
+        // require to have power and correct dip status
+        // record previous owner
+        // set time record for when can remove token
+        // Create system for recording, distributing ETH
+
+    }
+}
+
 // VRFConsumerBase,
 contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 public tokenCounter;
@@ -222,7 +250,9 @@ event Received(address sender, uint amount);
 
 
     function reclaimFundsNoInterest(uint256 _tokenId, int256 _dipLevel) public returns(bool) {
-        require(msg.sender != ownerOf(_tokenId), "Must be token owner.")
+        require(msg.sender != ownerOf(_tokenId), "Must be token owner.");
+        uint256 ETHSent;
+        uint256 USDTReceived;
 
         IERC20(USDTAddress).approve(address(router), tokenIdToStableCoin[_tokenId]);
         (ETHSent, USDTReceived) = UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[_tokenId], USDTAddress, ownerOf(_tokenId), tokenPair, router, swapSlippage);
@@ -338,14 +368,21 @@ event Received(address sender, uint amount);
 
         uint8 _dipLevel = tokenIdToDipLevel[_tokenId];
         int256 _dipValue = tokenIdToDipValue[_tokenId];
-        int256 _RADIUS = 115;
+        int256 _RADIUS = 80;
         uint8 _circleRadius = uint8(_RADIUS*(100 - 100*(getLatestPrice() - _dipValue)/getLatestPrice())/100); // temp, check for negative
         string memory mainImage;
 
         if (_dipLevel==0){
             mainImage = string(abi.encodePacked(
-                "%3Ccircle cx='175' cy='225' r='100' stroke='black' stroke-width='3' stroke-dasharray='15' fill='white' /%3E",
-                "%3Ccircle cx='175' cy='225' r='", uint2str(uint256(_circleRadius)) ,"' stroke='' stroke-width='0' fill='red' /%3E"
+//                "%3Ccircle cx='175' cy='225' r='100' stroke='black' stroke-width='3' stroke-dasharray='15' fill='white' /%3E",
+//                "%3Ccircle cx='175' cy='225' r='", uint2str(uint256(_circleRadius)) ,"' stroke='' stroke-width='0' fill='red' /%3E"
+//                "%3Ccircle style='fill:#ffffff;stroke:#0045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='85' cy='85' r='100' /%3E",
+//                "%3Ccircle style='fill:#ffffff;stroke:#000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='85' cy='85' r='", uint2str(uint256(_circleRadius))  ,"' /%3E"
+
+                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='175' cy='225' r='100' /%3E ",
+                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='175' cy='225' r='80' /%3E",
+                "%3Ccircle cx='175' cy='225' r='", uint2str(uint256(_circleRadius)) ,"' stroke='' stroke-width='0' fill='green' /%3E"
+
             ));
         }
         else {
