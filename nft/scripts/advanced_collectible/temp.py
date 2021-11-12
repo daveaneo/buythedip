@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from brownie import BuyTheDipNFT, accounts, config
+from brownie import BuyTheDipNFT, DipStaking, accounts, config
 from scripts.helpful_scripts import get_breed, fund_with_link
 import time
 
@@ -19,13 +19,42 @@ def main():
     # reset_all_dip_levels(total_tokens)
     print(f'Dip Levels:')
     print_all_dip_levels(total_tokens)
-    perform_upkeep()
-    print(f'After upkeep:')
-    print_all_dip_levels(total_tokens)
+    # perform_upkeep()
+    # print(f'After upkeep:')
+    # print_all_dip_levels(total_tokens)
+
+    print("Staking token 0")
+    stake_token(0)
 
     # set_dip_levels(set(range(btd.tokenCounter())),1)
 
     # side_piece()
+
+
+def stake_token(_id):
+    dev = accounts.add(config["wallets"]["from_key"])
+    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    dip_staking = DipStaking[len(DipStaking) - 1]
+
+    print(f'dev: {dev}')
+    print(f'dipStaking address: {dip_staking.address}')
+    print(f'BTD address: {btd.address}')
+
+
+    # btd.approve(dip_staking.address, 0, {"from": dev})
+    btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
+    time.sleep(5)
+    energy = dip_staking.getTotalStakingEnergy()
+    print(f"energy: {energy}")
+
+    # dip_staking.call({"value": 10000, "from": dev})
+    dev.transfer(dip_staking.address, 100)
+    print(f'Balance before: {dip_staking.balance()}')
+    print(f'Unstaking and claiming rewards...')
+    dip_staking.withdrawRewards(_id, {"from": dev})
+    dip_staking.unstake(_id, {"from": dev})
+    print(f'Balance after: {dip_staking.balance()}')
+
 
 def print_all_dip_levels(total_tokens):
     dev = accounts.add(config["wallets"]["from_key"])

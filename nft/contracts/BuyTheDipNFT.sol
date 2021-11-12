@@ -1,4 +1,5 @@
-pragma solidity 0.6.12;
+pragma solidity ^0.6.12;
+//pragma solidity >= 0.4.22 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
@@ -15,14 +16,14 @@ import "interfaces/IERC20.sol";
 
 
 // Objectives:
-//    Mint a token that will purchase dip when BNB goes down to some value
-//    Look up best way to sort? on blockchain--algorithm efficiency
-//    Purchase stablecoin
+// X //    Mint a token that will purchase dip when BNB goes down to some value
+// X //    Look up best way to sort? on blockchain--algorithm efficiency
+// X //    Purchase stablecoin
 //    Loan stablecoin
 //    Redeem stablecoin
-//    Purchase BNB
-//    Upgrade NFT to new graphic
-//    1 year limitation on redeeming, 1% penalty + interest + destroy NFT
+// X //    Purchase BNB
+// X //    Upgrade NFT to new graphic
+//    Stake NFT to earn time-limited rewards
 
 
 library UniswapHelpers {
@@ -106,17 +107,60 @@ library UniswapHelpers {
 }
 
 
-contract DipStaking is Ownable  {
+/// @dev Note: the ERC-165 identifier for this interface is 0x150b7a02.
+interface ERC721TokenReceiver {
+    /// @notice Handle the receipt of an NFT
+    /// @dev The ERC721 smart contract calls this function on the recipient
+    ///  after a `transfer`. This function MAY throw to revert and reject the
+    ///  transfer. Return of other than the magic value MUST result in the
+    ///  transaction being reverted.
+    ///  Note: the contract address is always the message sender.
+    /// @param _operator The address which called `safeTransferFrom` function
+    /// @param _from The address which previously owned the token
+    /// @param _tokenId The NFT identifier which is being transferred
+    /// @param _data Additional data with no specified format
+    /// @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+    ///  unless throwing
+    function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes memory _data) external returns(bytes4);
+}
+
+contract DipStaking is Ownable, ERC721TokenReceiver  {
     BuyTheDipNFT public BTD;
     mapping(uint256=>address) public previousOwner;
-    mapping(uint256=>uint256) public removalTime; // we went to disencentivize people who game the system? Maybe don' need to worry
+    mapping(uint256=>uint256) public stakeStartTimestamp; // we went to disencentivize people who game the system? Maybe don' need to worry
     mapping(uint256=>uint256) public moneys; // we went to disencentivize people who game the system? Maybe don' need to worry
     uint256 public moneysReceived;
+    uint256[] public activeNFTArray;
+    uint256 public reservedFundsForStakers=0;
+    uint256 public reservedFundsForOwners=0;
 
     constructor(address _BuyTheDipNFTAddress) public {
         // set _BuyTheDipNFTAddress
         BTD = BuyTheDipNFT(payable(_BuyTheDipNFTAddress));
     }
+
+    /** @dev Unpacks 3 uints into 1 uint to (256) -> (128, 64, 64)
+        @param _userDeposit -- 256 bit encoding of deposit, blockDepositAmount, and blockDeposited
+      */
+    function unpackData(uint256 _userDeposit) internal pure returns (uint256, uint256, uint256){
+        uint256 _deposit = uint256(uint128(_userDeposit));
+        uint256 _blockDepositAmount = uint256(uint64(_userDeposit >> 128));
+        uint256 _blockDeposited = uint256(uint64(_userDeposit >> 192));
+        return (_deposit, _blockDepositAmount, _blockDeposited);
+    }
+
+    /** @dev Packs 3 uints into 1 uint to save space (128, 64, 64) -> 256
+        @param _deposit -- total deposit, uint128
+        @param _blockDepositAmount -- amount deposited in this block, uint64
+        @param _blockDeposited -- block.timestamp, uint64
+      */
+    function packData(uint256 _deposit, uint256 _blockDepositAmount, uint256 _blockDeposited) internal pure returns (uint256){
+        uint256 ret = _deposit;
+        ret |= _blockDepositAmount << 128;
+        ret |= _blockDeposited << 192;
+        return ret;
+    }
+
 
     receive() external payable{
       // when receiving ETH, split it equally among all stakers and founders/owners
@@ -124,13 +168,104 @@ contract DipStaking is Ownable  {
 
     }
 
-    function stake() external {
+    function getTotalStakingEnergy() public view returns(uint256) {
+        // Make sure everyone is flushed.
+        uint256 _total = 0;
+        for(uint256 i = 0; i < activeNFTArray.length; i++){ // is activeNFTArray.length dynamic here?
+            uint256 _id = activeNFTArray[i];
+            if(BTD.tokenIdToEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
+                _total += block.timestamp - stakeStartTimestamp[_id];
+            }
+            else {
+                _total += BTD.tokenIdToEnergy(_id);
+            }
+        }
+        return _total == 0 ? 1: _total;
+    }
+
+    function unstake(uint256 _id) external {
+        require(msg.sender == previousOwner[_id], "Not owner.");
+        BTD.safeTransferFrom(address(this), previousOwner[_id], _id);
+    }
+
+    function withdrawRewards(uint256 _id) external {
+        require(msg.sender == previousOwner[_id], "Not owner.");
+
+        flushTokenRewardsOf(_id);
+        reservedFundsForStakers -= moneys[_id];
+        uint256 _reward = moneys[_id];
+        moneys[_id] = 0;
+        (bool success, ) = address(previousOwner[_id]).call{value : _reward}("Releasing rewards to NFT owner.");
+        require(success, "Transfer failed.");
+    }
+
+    function withdrawRewardsForOwners(uint256 _id) external {
+        require(msg.sender == owner(), "Not owner.");
+        uint256 _reward = reservedFundsForOwners;
+        reservedFundsForOwners = 0;
+        (bool success, ) = owner().call{value : _reward}("Releasing rewards to owner.");
+        require(success, "Transfer failed.");
+    }
+
+
+    function getAvailableStakingFunds() public view returns(uint256){
+        return (address(this).balance - reservedFundsForStakers - reservedFundsForOwners);
+    }
+
+    function flushTokenRewardsOf(uint256 _id) internal {
+        uint256 _rewards = getAvailableStakingFunds() * getActiveEnergyOfToken(_id) / getTotalStakingEnergy();
+        moneys[_id] += _rewards;
+        BTD.setEnergy(_id, BTD.tokenIdToEnergy(_id) - getActiveEnergyOfToken(_id));
+        reservedFundsForStakers += _rewards;
+    }
+
+    function getActiveEnergyOfToken(uint256 _id) public view returns(uint256){
+            uint256 _energy;
+            if(BTD.tokenIdToEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
+                _energy = block.timestamp - stakeStartTimestamp[_id];
+            }
+            else {
+                _energy = BTD.tokenIdToEnergy(_id);
+            }
+            return _energy;
+    }
+
+    function flushInactive() internal {
+        uint256 _id;
+        uint256 _rewards;
+        uint256 _totalEnergy = getTotalStakingEnergy(); // todo-- do we need to recalculate this in the for loop?
+        for(uint256 i = 0; i < activeNFTArray.length; i++){ // is activeNFTArray.length dynamic here?
+            if(BTD.tokenIdToEnergy(activeNFTArray[i]) + stakeStartTimestamp[i] < block.timestamp){
+                _id = activeNFTArray[i];
+                _rewards = getAvailableStakingFunds() * getActiveEnergyOfToken(_id) / _totalEnergy;
+                moneys[_id] += _rewards;
+                BTD.setEnergy(_id, 0);
+                reservedFundsForStakers += _rewards;
+                activeNFTArray[i] = activeNFTArray[activeNFTArray.length - 1];
+                activeNFTArray.pop();
+            }
+        }
+    }
+
+//    function stake(uint256 _id) external returns(bool) {
+    function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes memory _data) external override returns(bytes4){
         // receive tokens
         // require to have power and correct dip status
         // record previous owner
         // set time record for when can remove token
         // Create system for recording, distributing ETH
+        // Variables
+            // One timestamp for each NFT, mapping(uint256=>uint256), could be less if we wanted to include cash holding
+            // contract.balance - holdings (various) is used to cash out
+            // Each receive() updates which active NFTs and cashes out those that are inactive
+          require(BTD.tokenIdToIsWaitingToBuy(_tokenId)==false,"Dip not bought.");
+          //require(BTD.ENERGY > 0, "Not enough energy.");
+          stakeStartTimestamp[_tokenId] = block.timestamp;
+          previousOwner[_tokenId] = _from; //tx.origin; //msg.sender;
+          activeNFTArray.push(_tokenId);
 
+        //        bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+        return this.onERC721Received.selector;
     }
 }
 
@@ -141,9 +276,10 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     // Better to use a struct?
     mapping(uint256 => uint8) public tokenIdToDipLevel; // Number of times NFT has bought the dip
     mapping(uint256 => int256) public tokenIdToDipValue; // Strike Price
-    mapping(uint256 => int256) public tokenIdToDipPercent; // Percent Drop
+    mapping(uint256 => uint256) public tokenIdToDipPercent; // Percent Drop
     mapping(uint256 => uint256) public tokenIdToStableCoin; // Amount of USDT purchased
     mapping(uint256 => bool) public tokenIdToIsWaitingToBuy; // True/False if waiting to buy
+    mapping(uint256 => uint256) public tokenIdToEnergy; // True/False if waiting to buy
 
     uint256 internal fee;
     int256 public smallestDip = 2**127 - 1;
@@ -208,6 +344,7 @@ event Received(address sender, uint amount);
 
             tokenIdToDipLevel[newItemId] = 0;
             tokenIdToDipValue[newItemId] = (100 - percentDrop) * getLatestPrice() / 100;
+            tokenIdToDipPercent[newItemId] = percentDrop;
             _setTokenURI(newItemId, tokenURI(newItemId));
 
             tokenIdToStableCoin[newItemId] = swapETHForTokens(newItemId, msg.value);
@@ -272,23 +409,15 @@ event Received(address sender, uint amount);
         IERC20(USDTAddress).approve(address(router), tokenIdToStableCoin[_tokenId]);
         (ETHSent, USDTReceived) = UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[_tokenId], USDTAddress, ownerOf(_tokenId), tokenPair, router, swapSlippage);
 
-//        addy = ownerOf(_tokenId);
-//        MESSAGE = uint2str(IERC20(USDTAddress).balanceOf(ownerOf(_tokenId)));
-//        uint256 finalBalance = address(this).balance; // should equal USDTReceived
-
-        // send ETH to owner.
-//        address tokenOwner = ownerOf(_tokenId);
-
-        // handled automatically!
-//        uint256 amountReleased = finalBalance - initialBalance;
-//        (bool success, ) = tokenOwner.call{value : amountReleased}("Releasing ETH to NFT owner");
-//        require(success, "Transfer failed.");
-
         emit CoinsReleasedToOwner(USDTReceived, block.timestamp);
-        tokenIdToStableCoin[_tokenId] = 0;
         tokenIdToIsWaitingToBuy[_tokenId] = false;
-//        tokenIdToDipLevel[_tokenId] += 1; // todo -- mechanism somewhere to prevent going above 7
         if (tokenIdToDipLevel[_tokenId] < 7) { tokenIdToDipLevel[_tokenId] += 1; }
+
+        tokenIdToEnergy[_tokenId] += tokenIdToStableCoin[_tokenId] * tokenIdToDipPercent[_tokenId] **2 / 10000 * tokenIdToDipLevel[_tokenId]; // todo -- choose energy formula
+
+        //temp todo -- remove after testing
+        tokenIdToEnergy[_tokenId] = 10000;
+
         return true;
     }
 
@@ -434,6 +563,11 @@ event Received(address sender, uint amount);
         return string(abi.encodePacked(baseURL,svgBase64Encoded));
     }
 
+    function setEnergy(uint256 _tokenId, uint256 _energy) external { // todo: Limit callers to Dip_Staking address
+        require(_energy < tokenIdToEnergy[_tokenId], "Can only reduce energy");
+        tokenIdToEnergy[_tokenId] = _energy;
+    }
+
 
     function setDipLevel(uint256 _tokenId, uint8 _dipLevel) public onlyOwner {
         require(_dipLevel >=0 && _dipLevel < 8, "Invalid Dip Level");
@@ -507,7 +641,7 @@ event Received(address sender, uint amount);
         bytes memory bstr = new bytes(len);
         uint k = len - 1;
         while (_i != 0) {
-            bstr[k--] = byte(uint8(48 + _i % 10));
+            bstr[k--] = bytes1(uint8(48 + _i % 10));
             _i /= 10;
         }
         return string(bstr);
