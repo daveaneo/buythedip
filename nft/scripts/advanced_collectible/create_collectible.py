@@ -20,7 +20,7 @@ def main():
     NFTs_to_create = 3;
 
     for i in range(NFTs_to_create):
-        t = btd.createCollectible(i*15*0,  {"from": dev, "amount":10**16}) # dictionary needed for payables?
+        t = btd.createCollectible(i*15,  {"from": dev, "amount":10**17}) # dictionary needed for payables?
         transactions.append(t)
 
     print(f'Number of NFTs: {len(transactions)}')

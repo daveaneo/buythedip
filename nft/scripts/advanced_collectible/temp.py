@@ -47,6 +47,8 @@ def stake_token(_id):
     energy = dip_staking.getTotalStakingEnergy()
     print(f"energy: {energy}")
 
+    assert energy > 0
+
     # dip_staking.call({"value": 10000, "from": dev})
     dev.transfer(dip_staking.address, 100)
     print(f'Balance before: {dip_staking.balance()}')
@@ -54,6 +56,8 @@ def stake_token(_id):
     dip_staking.withdrawRewards(_id, {"from": dev})
     dip_staking.unstake(_id, {"from": dev})
     print(f'Balance after: {dip_staking.balance()}')
+
+    assert dip_staking.balance() == 0
 
 
 def print_all_dip_levels(total_tokens):
