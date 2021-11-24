@@ -1,9 +1,11 @@
 #!/usr/bin/python3
+# brownie test -s --network rinkeby
 from brownie import BuyTheDipNFT, DipStaking, accounts, config
 from scripts.helpful_scripts import get_breed, fund_with_link
 import time
 import pytest
 
+test_counter = 0
 
 def main():
     dev = accounts.add(config["wallets"]["from_key"])
@@ -35,6 +37,12 @@ def main():
     # side_piece()
 
 
+def print_test(s):
+    global test_counter
+    print(f'{test_counter}) {s}')
+    test_counter += 1
+
+
 def test_initialize():
     # deploy_and_create()
     pass
@@ -51,10 +59,12 @@ def deploy_and_create():
         publish_source=False,
     )
 
+    print_test('BuyTheDip Deployed:')
     assert btd is not None
 
     for i in range(1):
         t = btd.createCollectible(i*15,  {"from": dev, "amount": 10**14}) # dictionary needed for payables?
+        print_test('NFT Created:')
         assert t is not None
 
     dip_staking = DipStaking.deploy(btd.address, {"from": dev}, publish_source=False)
@@ -108,13 +118,13 @@ def contract_and_staking_rewards():
 # def test_stake_token(deploy_and_create):
 def test_stake_token():
     _id = 0
-    print(f'Staking token {_id}')
+    print(f'##### Staking Tests #####')
 
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
     dip_staking = DipStaking[len(DipStaking) - 1]
 
-    print(f'total BTDs: {len(BuyTheDipNFT)}')
+    # print(f'total BTDs: {len(BuyTheDipNFT)}')
 
     # print(f'dev: {dev}')
     # print(f'dipStaking address: {dip_staking.address}')
@@ -126,35 +136,37 @@ def test_stake_token():
     if btd.ownerOf(0) != dev.address:
         # btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
         pass
-        print(f'{btd.ownerOf(0)} is not {dev}')
+        # print(f'{btd.ownerOf(0)} is not {dev}')
         # print(f'type(btd.ownerOf(0): {type(btd.ownerOf(0))}')
         # print(f'dev: {type(dev)}')
         # print(f'dev.address: {type(dev.address)}')
 
     else:
-        print(f'Transferring NFT to {dip_staking.address}')
+        # print(f'Transferring NFT to {dip_staking.address}')
         btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
 
     time.sleep(5)
     energy = dip_staking.getTotalStakingEnergy()
     # print(f"energy: {energy}")
 
-    print(f'### Test ### Asserting energy > 0')
+    print_test('Energy created in staking:')
     assert energy > 0
 
-    print(f"Token owner: {btd.ownerOf(0)}")
-    print(f"Previous owner: {dip_staking.previousOwner(0)}")
-    print(f'dev: {dev}')
-    print(f'dipStaking address: {dip_staking.address}')
-    print(f'BTD address: {btd.address}')
+    # print(f"Token owner: {btd.ownerOf(0)}")
+    # print(f"Previous owner: {dip_staking.previousOwner(0)}")
+    # print(f'dev: {dev}')
+    # print(f'dipStaking address: {dip_staking.address}')
+    # print(f'BTD address: {btd.address}')
 
     # dip_staking.call({"value": 10000, "from": dev})
     dev.transfer(dip_staking.address, 100)
-    print(f'Balance before: {dip_staking.balance()}')
-    print(f'Unstaking and claiming rewards...')
+    # print(f'Balance before: {dip_staking.balance()}')
+    # print(f'Unstaking and claiming rewards...')
     dip_staking.withdrawRewards(_id, {"from": dev})
     dip_staking.unstake(_id, {"from": dev})
-    print(f'Balance after: {dip_staking.balance()}')
+    # print(f'Balance after: {dip_staking.balance()}')
+
+    print_test('Unstake removes balance:')
 
     assert dip_staking.balance() == 0
 
