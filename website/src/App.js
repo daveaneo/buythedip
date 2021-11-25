@@ -1,7 +1,11 @@
+
+
+
 import React, { Component } from "react";
 
 // importing MyRouts where we located all of our theme
 import MyRouts from "./routers/routes";
+import Header from "./components/Header/Header.js";
 import { updateWeb3Data, updateIsWrongNetworkOpen } from "./actions";
 import { connect } from "react-redux";
 import { getState } from "./reducer";
@@ -79,9 +83,8 @@ class UnconnectedApp extends Component {
     }
     provider.on("connect", () => {});
     provider.on("close", () => {});
-    provider.on("disconnect", () => {});
-    provider.on("accountsChanged", async (accounts) => {
-      this.updateBalance(accounts);
+    provider.on("disconnect", () => {
+      this.setState({ address: "" });
     });
   };
 
@@ -136,22 +139,25 @@ class UnconnectedApp extends Component {
     }
   };
 
-  componentDidMount() {
-    if (this.web3Modal.cachedProvider) {
-      this.onConnect();
-    }
-    this.updateToReduxStore();
-  }
+  // componentDidMount() {
+  //   if (this.web3Modal.cachedProvider) {
+  //     this.onConnect();
+  //   }
+  //   this.updateToReduxStore();
+  // }
 
   render() {
     if (this.props.balanceFieldsShouldUpdate) {
       this.updateBalance(this.state.accounts);
-      // this.props.dispatch(balanceFieldsShouldUpdate(false));
+      // this.props.dispatch(balanceFieldsShouldUpdate(false));`
     }
 
     return (
       <div>
-        <MyRouts address={this.state.address} onClick={this.onConnect} />
+        <Header
+          walletProps={{ connect: this.onConnect, address: this.state.address }}
+        />
+        <MyRouts />
       </div>
     );
   }

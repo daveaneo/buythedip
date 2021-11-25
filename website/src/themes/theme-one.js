@@ -14,13 +14,10 @@ import Mint from "../components/Mint/Mint";
 import Stake from "../components/Stake/Stake";
 import Leaderboard from "../components/Leaderboard/Leaderboard";
 
-
-
 class ThemeOne extends Component {
   render() {
     return (
       <div className="main">
-        <Header />
         <Hero />
         <Stats />
         <Mint />
