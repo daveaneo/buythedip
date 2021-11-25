@@ -1,6 +1,3 @@
-
-
-
 import React, { Component } from "react";
 
 // importing MyRouts where we located all of our theme
@@ -148,7 +145,7 @@ class UnconnectedApp extends Component {
 
   render() {
     if (this.props.balanceFieldsShouldUpdate) {
-      this.updateBalance(this.state.accounts);
+      // this.updateBalance(this.state.accounts);
       // this.props.dispatch(balanceFieldsShouldUpdate(false));`
     }
 
