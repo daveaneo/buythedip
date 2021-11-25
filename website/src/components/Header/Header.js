@@ -1,7 +1,7 @@
 import React from "react";
 import WalletConnectButton from "../WalletConnectButton";
 
-const Header = () => {
+const Header = ({ walletProps }) => {
   return (
     <header id="header">
       {/* Navbar */}
@@ -163,7 +163,10 @@ const Header = () => {
           {/* Navbar Action Button */}
           <ul className="navbar-nav action">
             <li className="nav-item ml-3">
-              <WalletConnectButton />
+              <WalletConnectButton
+                onClick={walletProps.connect}
+                address={walletProps.address}
+              />
             </li>
           </ul>
         </div>
