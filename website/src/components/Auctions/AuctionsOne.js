@@ -142,7 +142,7 @@ class AuctionsOne extends Component {
                               <span className="ml-2">{item.seller}</span>
                             </a>
                             <div className="card-bottom d-flex justify-content-between">
-                              <span>Taylor Pays: {item.price}</span>
+                              <span>{item.price}</span>
                               <span>{item.count}</span>
                             </div>
                           </div>
