@@ -597,6 +597,34 @@ event Received(address sender, uint amount);
         }
     }
 
+    /** @dev Get all NFTs owned by owner.
+        @param _addy -- address to get list of NFTs of
+        @return -- list of token IDs owned by addy
+      */
+    function getAllNFTsByOwner(address _addy) public view returns (uint256[] memory){
+        uint256 total=0;
+
+        for(uint256 i=0;i<tokenCounter;i++){
+            if(ownerOf(i)==_addy){
+                total +=1;
+            }
+        }
+
+        uint256[] memory owned = new uint256[](total);
+        uint256 count=0;
+
+        // Two cycles are needed because of inability to push integers to memory array
+        for(uint256 i=0;i<tokenCounter;i++){
+            if(count>=total){ break; }
+            if(ownerOf(i)==_addy){
+                owned[count]=i;
+            }
+        }
+
+        return owned;
+    }
+
+
     function buyTheDip(uint256 _tokenId) public onlyKeeper {
         // Confirm price
         require(tokenIdToDipValue[_tokenId] <= getLatestPrice(), 'Price above dipLevel');
