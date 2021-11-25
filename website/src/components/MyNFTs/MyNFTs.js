@@ -6,6 +6,8 @@ const initData = {
   btnText: "View All",
 };
 
+// getAllNFTsByOwner
+
 const data = [
   {
     id: "1",

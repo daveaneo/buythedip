@@ -151,7 +151,6 @@ class UnconnectedApp extends Component {
 
     return (
       <div>
-      <div style={{color: "red", fontWeight:"bold", textAlign: "right", fontSize: 2 + "em", zIndex:999999 }} onClick={this.onConnect}>Ghetto Connect Wallet</div>
         <MyRouts address={this.state.address} onClick={this.onConnect} />
       </div>
     );

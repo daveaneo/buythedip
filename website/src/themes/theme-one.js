@@ -3,7 +3,7 @@ import React, { Component } from "react";
 import Header from "../components/Header/Header";
 import Hero from "../components/Hero/Hero";
 import Auctions from "../components/Auctions/AuctionsOne";
-import MyNFTs from "../components/Auctions/MyNFTs";
+import MyNFTs from "../components/MyNFTs/MyNFTs";
 import Work from "../components/Work/Work";
 import Footer from "../components/Footer/Footer";
 import ModalSearch from "../components/Modal/ModalSearch";
