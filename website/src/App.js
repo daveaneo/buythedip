@@ -154,6 +154,7 @@ class UnconnectedApp extends Component {
         <Header
           walletProps={{ connect: this.onConnect, address: this.state.address }}
         />
+
         <MyRouts />
       </div>
     );

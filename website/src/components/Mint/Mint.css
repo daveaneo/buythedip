@@ -1,0 +1,92 @@
+.NFT-box{
+/*    fill:rgb(255,255,255); */
+    fill:white;
+    stroke-width:3;
+    stroke:rgb(0,0,0)
+}
+
+.bg-rectangle {
+    opacity:0.33;
+    fill:#157700;
+    fill-opacity:0.33;
+    stroke:#0b9100;
+    stroke-width:1;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke-miterlimit:4;
+    stroke-dasharray:none;
+    stroke-opacity:1;
+    paint-order:normal;
+    width: 350px;
+    height: 350px;
+    x:0;
+    y:0;
+}
+
+.inner-rectangle {
+    opacity:0.6;
+    mix-blend-mode:normal;
+    fill:none;
+    stroke:#0b9100;
+    stroke-width:15;
+    stroke-linejoin:miter;
+    stroke-miterlimit:4;
+    stroke-dasharray:none;
+    stroke-opacity:1;
+    paint-order:normal;
+    width: 315px;
+    height: 315px;
+    x: 17px;
+    y: 17px;
+}
+
+.extra-rectangle {
+    opacity: 0.33;
+    mix-blend-mode:normal;
+    fill:none;
+    stroke:#0b9100;
+    stroke-width:1.82496;
+    stroke-linejoin:miter;
+    stroke-miterlimit:4;
+    stroke-dasharray:none;
+    stroke-opacity:1;
+    paint-order:normal;
+    width: 288px;
+    height: 288px;
+    x: 31px;
+    y: 31px;
+}
+
+.outer-plate-line {
+    fill:#ffffff;
+    stroke:#0045bb;
+    stroke-width:1.38;
+    stroke-linejoin:round;
+    stroke-opacity:1;
+    stroke-miterlimit:4;
+    stroke-dasharray:none;
+    cx: 175px;
+    cy: 200px;
+    r: 100px;
+}
+
+.inner-plate-line {
+    fill: none;
+    stroke:#0045bb;
+    stroke-width:4;
+    stroke-linejoin:round;
+    stroke-miterlimit:4;
+    stroke-dasharray:none;
+    cx: 175px;
+    cy: 200px;
+    r: 80px;
+}
+
+.NFT-image-container {
+    margin-top:2em;
+    width:350px;
+    height:350px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
