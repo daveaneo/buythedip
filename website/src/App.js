@@ -22,6 +22,9 @@ import Web3 from "web3";
 import inject from "./images/inject.png";
 import qr from "./images/qr-code.png";
 import WalletConnectProvider from "@walletconnect/web3-provider";
+import abiBTD from "./abi/BuyTheDipNFT.json";
+
+
 
 class UnconnectedApp extends Component {
   constructor(props) {
@@ -143,7 +146,28 @@ class UnconnectedApp extends Component {
     }
   }
 
+
+
   render() {
+
+  function doTheThing(){
+    let buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
+    let web3  = new Web3(web3Modal.connect())
+    let contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
+    function mintNFT(ether, percentage) {
+    this.contract.methods
+      .createCollectible(parseInt(percentage))
+      .send({from: this.props.props.account, value: parseInt(ether) })
+      .then((balance) => {
+        console.log(balance);
+      });
+  };
+
+  mintNFT(0.1,15);
+  };
+  doTheThing();
+
+
     return (
       <div>
         <Header
