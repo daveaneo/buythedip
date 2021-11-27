@@ -22,6 +22,12 @@ let _energy = 0;
 let account = "0xsdfs9lsls...";
 const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
 let dipStakingAddress;
+let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
+//let ENDPOINT_TESTNET_ROPSTEN_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/ropsten";
+//let ENDPOINT_TESTNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet";
+//let ENDPOINT_MAINNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/mainnet";
 
 //todo-- create getMinABI function or use existing function to get ABI
 let contract = 0;
@@ -32,7 +38,7 @@ let contract = 0;
 
 function mintNFT(Ether, percentage) {
   contract.methods
-    .mint("your address")
+    .createCollectible("your address")
     .send(percentage, { from: account, value: Ether })
     .then((balance) => {
       console.log(balance);
@@ -51,6 +57,9 @@ class Mint extends Component {
 
   render() {
     console.log(this.props.account);
+    console.log(this);
+    console.log(this.props);
+    console.log(this.props.address);
     return (
       <section className="hero-section" id="mint">
         <div className="container">
@@ -86,31 +95,31 @@ class Mint extends Component {
               <circle className="inner-plate-line" />
               {/* Data*/}
               {/* Current Eth Price*/}
-              <text x="35" y="45" font-weight="bold" fill="brown">
+              <text x="35" y="45" fontWeight="bold" fill="brown">
                 Current Price:
               </text>
-              <text x="175" y="45" font-weight="normal" fill="brown">
+              <text x="175" y="45" fontWeight="normal" fill="brown">
                 ${_latestPrice}{" "}
               </text>
               {/* Strike Price*/}
-              <text x="35" y="60" font-weight="bold" fill="brown">
+              <text x="35" y="60" fontWeight="bold" fill="brown">
                 Strike Price:
               </text>
-              <text x="175" y="60" font-weight="normal" fill="brown">
+              <text x="175" y="60" fontWeight="normal" fill="brown">
                 ${_strikePrice}{" "}
               </text>
               {/* Stable Coin Invested (conversion)*/}
-              <text x="35" y="75" font-weight="bold" fill="brown">
+              <text x="35" y="75" fontWeight="bold" fill="brown">
                 USDC Invested:
               </text>
-              <text x="175" y="75" font-weight="normal" fill="brown">
+              <text x="175" y="75" fontWeight="normal" fill="brown">
                 ${_lendingBalance}{" "}
               </text>
               {/* Energy*/}
-              <text x="35" y="90" font-weight="bold" fill="brown">
+              <text x="35" y="90" fontWeight="bold" fill="brown">
                 Energy:
               </text>
-              <text x="175" y="90" font-weight="normal" fill="brown">
+              <text x="175" y="90" fontWeight="normal" fill="brown">
                 {" "}
                 {_energy}
               </text>
@@ -119,9 +128,9 @@ class Mint extends Component {
               <text
                 x="50%"
                 y="23"
-                text-anchor="middle"
-                font-weight="bold"
-                font-size="1.1em"
+                textAnchor="middle"
+                fontWeight="bold"
+                fontSize="1.1em"
                 fill="white"
               >
                 {" "}
@@ -131,9 +140,9 @@ class Mint extends Component {
               <text
                 x="50%"
                 y="338"
-                text-anchor="middle"
-                font-weight="bold"
-                font-size="1.1em"
+                textAnchor="middle"
+                fontWeight="bold"
+                fontSize="1.1em"
                 fill="white"
               >
                 {" "}
