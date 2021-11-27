@@ -14,25 +14,23 @@ import Mint from "../components/Mint/Mint";
 import Stake from "../components/Stake/Stake";
 import Leaderboard from "../components/Leaderboard/Leaderboard";
 
-class ThemeOne extends Component {
-  render() {
-    return (
-      <div className="main">
-        <Hero />
-        <Stats />
-        <Mint />
-        <MyNFTs />
-        <Stake />
-        <Leaderboard />
-        <Auctions />
-        <Work />
-        <Footer />
-        <ModalSearch />
-        <ModalMenu />
-        <Scrollup />
-      </div>
-    );
-  }
-}
+const ThemeOne = (address) => {
+  return (
+    <div className="main">
+      <Hero />
+      <Stats />
+      <Mint address={address} />
+      <MyNFTs />
+      <Stake />
+      <Leaderboard />
+      <Auctions />
+      <Work />
+      <Footer />
+      <ModalSearch />
+      <ModalMenu />
+      <Scrollup />
+    </div>
+  );
+};
 
 export default ThemeOne;

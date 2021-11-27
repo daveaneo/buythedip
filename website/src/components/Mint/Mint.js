@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import "./Mint.css";
 import Web3 from "web3";
+import BuyTheDipNFT from "../../abi/BuyTheDipNFT.json";
 
 const initData = {
   pre_heading: "Tasty NFTs",
@@ -10,10 +11,6 @@ const initData = {
   btn_2: "Contact Us",
 };
 
-
-
-
-
 let _tokenId = 1;
 let _dipLevel = 1; //tokenIdToDipLevel[_tokenId];
 let _strikePrice = 2500; //uint256(tokenIdToDipValue[_tokenId]);
@@ -22,85 +19,141 @@ let _latestPrice = 4700; //let(getLatestPrice());
 let _circleRadius = 0;
 let _lendingBalance = 1234;
 let _energy = 0;
-let account = "0xsdfs9lsls..."
-let buyTheDipAddress = "0xslisdf..."
+let account = "0xsdfs9lsls...";
+const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
+let dipStakingAddress;
 
 //todo-- create getMinABI function or use existing function to get ABI
-//let contract = new Web3.eth.Contract(this.getMinABI(), buyTheDipAddress, {
-//     from: account
-//});
+let contract = 0;
 
-let contract=0;
+// new Web3.eth.Contract(BuyTheDipNFT, buyTheDipAddress, {
+//   from: account,
+// });
 
 function mintNFT(Ether, percentage) {
-    contract.methods.mint('your address').send(percentage, {from: account, value:Ether}).then((balance) => {
-       console.log(balance)
+  contract.methods
+    .mint("your address")
+    .send(percentage, { from: account, value: Ether })
+    .then((balance) => {
+      console.log(balance);
     });
-
-
-  return true;
 }
 
-
 class Mint extends Component {
-  state = {
-    data: {},
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: {},
+      ether: 0,
+      percent: 0,
+    };
+  }
 
   render() {
-
+    console.log(this.props.account);
     return (
       <section className="hero-section" id="mint">
         <div className="container">
-        <label for="CoinAmount">ETH to add:</label>
-        <input type="number" id="CoinAmount" name="CoinAmount" min="0.1" step="0.01" />
-        <label for="DipPercent">Percent Dip to Repurchase:</label>
-        <input type="number" id="DipPercent" name="DipPercent" min="10" step="1" max="100" />
+          <label for="CoinAmount">ETH to add:</label>
+          <input
+            onChange={(event) => this.setState({ ether: event.target.value })}
+            type="number"
+            id="CoinAmount"
+            name="CoinAmount"
+            min="0.1"
+            step="0.01"
+          />
+          <label for="DipPercent">Percent Dip to Repurchase:</label>
+          <input
+            onChange={(event) => this.setState({ percent: event.target.value })}
+            type="number"
+            id="DipPercent"
+            name="DipPercent"
+            min="10"
+            step="1"
+            max="100"
+          />
 
-            { /* PREVIEW OF NFT */}
-            <div className="NFT-image-container">
-                <svg xmlns='http://www.w3.org/2000/svg' width='350' height='350'>
-                    <rect width='350' height='350' className="NFT-box" /> {/* style='fill:rgb(255,255,255);stroke-width:3;stroke:rgb(0,0,0)'*/}
-                    <rect className="bg-rectangle"/>
-                    <rect className="inner-rectangle"/>
-                    <rect className="extra-rectangle"/>
-                    <circle className="outer-plate-line"/>
-                    <circle className="inner-plate-line"/>
-
-                    {/* Data*/}
-                    {/* Current Eth Price*/}
-                    <text x='35' y='45' font-weight='bold' fill='brown'>Current Price:</text>
-                    <text x='175' y='45' font-weight='normal' fill='brown'>${_latestPrice} </text>
-                    {/* Strike Price*/}
-                    <text x='35' y='60'  font-weight='bold' fill='brown'>Strike Price:</text>
-                    <text x='175' y='60' font-weight='normal' fill='brown'>${_strikePrice} </text>
-                    {/* Stable Coin Invested (conversion)*/}
-                    <text x='35' y='75'  font-weight='bold' fill='brown'>USDC Invested:</text>
-                    <text x='175' y='75' font-weight='normal' fill='brown'>${_lendingBalance} </text>
-
-                    {/* Energy*/}
-                    <text x='35' y='90' font-weight='bold' fill='brown'>Energy:</text>
-                    <text x='175' y='90' font-weight='normal' fill='brown'> {_energy}</text>
-                    {/* ##### Top Middle*/}
-                    {/* Token Id*/}
-                    <text x='50%' y='23' text-anchor='middle' font-weight='bold' font-size='1.1em' fill='white'> {_tokenId} </text>
-                    {/* //// Bottom Middle/ */}
-                    <text x='50%' y='338' text-anchor='middle' font-weight='bold' font-size='1.1em' fill='white'> ETHEREUM </text>
-                    {/* Main image*/}
-                    {/* Error Message*/}
-                    Unsupported
-                </svg>
-            </div>
-
-
-          <div className="button-group">
-            <a className="btn btn-bordered-white">
-              <i className="icon-rocket mr-2" />
-              {this.state.data.btn_1}
-            </a>
+          {/* PREVIEW OF NFT */}
+          <div className="NFT-image-container">
+            <svg xmlns="http://www.w3.org/2000/svg" width="350" height="350">
+              <rect width="350" height="350" className="NFT-box" />{" "}
+              {/* style='fill:rgb(255,255,255);stroke-width:3;stroke:rgb(0,0,0)'*/}
+              <rect className="bg-rectangle" />
+              <rect className="inner-rectangle" />
+              <rect className="extra-rectangle" />
+              <circle className="outer-plate-line" />
+              <circle className="inner-plate-line" />
+              {/* Data*/}
+              {/* Current Eth Price*/}
+              <text x="35" y="45" font-weight="bold" fill="brown">
+                Current Price:
+              </text>
+              <text x="175" y="45" font-weight="normal" fill="brown">
+                ${_latestPrice}{" "}
+              </text>
+              {/* Strike Price*/}
+              <text x="35" y="60" font-weight="bold" fill="brown">
+                Strike Price:
+              </text>
+              <text x="175" y="60" font-weight="normal" fill="brown">
+                ${_strikePrice}{" "}
+              </text>
+              {/* Stable Coin Invested (conversion)*/}
+              <text x="35" y="75" font-weight="bold" fill="brown">
+                USDC Invested:
+              </text>
+              <text x="175" y="75" font-weight="normal" fill="brown">
+                ${_lendingBalance}{" "}
+              </text>
+              {/* Energy*/}
+              <text x="35" y="90" font-weight="bold" fill="brown">
+                Energy:
+              </text>
+              <text x="175" y="90" font-weight="normal" fill="brown">
+                {" "}
+                {_energy}
+              </text>
+              {/* ##### Top Middle*/}
+              {/* Token Id*/}
+              <text
+                x="50%"
+                y="23"
+                text-anchor="middle"
+                font-weight="bold"
+                font-size="1.1em"
+                fill="white"
+              >
+                {" "}
+                {_tokenId}{" "}
+              </text>
+              {/* //// Bottom Middle/ */}
+              <text
+                x="50%"
+                y="338"
+                text-anchor="middle"
+                font-weight="bold"
+                font-size="1.1em"
+                fill="white"
+              >
+                {" "}
+                ETHEREUM{" "}
+              </text>
+              {/* Main image*/}
+              {/* Error Message*/}
+              Unsupported
+            </svg>
           </div>
 
-
+          <div className="button-group">
+            <div
+              className="btn btn-bordered-white"
+              onClick={() => mintNFT(this.state.ether, this.state.percent)}
+            >
+              <i className="icon-rocket mr-2" />
+              {this.state.data.btn_1}
+            </div>
+          </div>
         </div>
         {/* Shape */}
         <div className="shape">
@@ -127,9 +180,7 @@ class Mint extends Component {
               strokeWidth={1}
               fill="none"
               fillRule="evenodd"
-            >
-
-            </g>
+            ></g>
           </svg>
         </div>
       </section>

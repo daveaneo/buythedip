@@ -1,7 +1,18 @@
 import React, { Component } from "react";
 
 // importing MyRouts where we located all of our theme
-import MyRouts from "./routers/routes";
+import Hero from "./components/Hero/Hero";
+import Auctions from "./components/Auctions/AuctionsOne";
+import MyNFTs from "./components/MyNFTs/MyNFTs";
+import Work from "./components/Work/Work";
+import Footer from "./components/Footer/Footer";
+import ModalSearch from "./components/Modal/ModalSearch";
+import ModalMenu from "./components/Modal/ModalMenu";
+import Scrollup from "./components/Scrollup/Scrollup";
+import Stats from "./components/Stats/Stats";
+import Mint from "./components/Mint/Mint";
+import Stake from "./components/Stake/Stake";
+import Leaderboard from "./components/Leaderboard/Leaderboard";
 import Header from "./components/Header/Header.js";
 import { updateWeb3Data, updateIsWrongNetworkOpen } from "./actions";
 import { connect } from "react-redux";
@@ -148,10 +159,18 @@ class UnconnectedApp extends Component {
         <Header
           walletProps={{ connect: this.onConnect, address: this.state.address }}
         />
-
-        <MyRouts
-          address={this.state.address}
-        />
+        <Hero />
+        <Stats />
+        <Mint props={{ account: this.state.address }} />
+        <MyNFTs />
+        <Stake />
+        <Leaderboard />
+        <Auctions />
+        <Work />
+        <Footer />
+        <ModalSearch />
+        <ModalMenu />
+        <Scrollup />
       </div>
     );
   }

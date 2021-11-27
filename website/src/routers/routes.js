@@ -21,12 +21,16 @@ import Login from "../themes/login";
 import Signup from "../themes/signup";
 import Contact from "../themes/contact";
 
-const MyRouts = ({ address, onClick }) => {
+const MyRouts = ({ address }) => {
   return (
     <div>
       <Router>
         <Switch>
-          <Route exact path="/" component={ThemeOne} />
+          <Route
+            exact
+            path="/"
+            render={(address) => <ThemeOne {...address} />}
+          />
           <Route exact path="/explore-1" component={ExploreOne} />
           <Route exact path="/explore-2" component={ExploreTwo} />
           <Route exact path="/explore-3" component={ExploreThree} />
