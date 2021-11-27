@@ -1,11 +1,11 @@
 import React, { Component } from "react";
 import "./Mint.css";
 import Web3 from "web3";
-import fs from "fs";
-import BuyTheDipNFT from "../../abi/BuyTheDipNFT.json";
+//import fs from "fs";
+import abiBTD from "../../abi/BuyTheDipNFT.json";
 import Contract from "web3-eth-contract";
 
-const contractJson = fs.readFileSync("../../abi/BuyTheDipNFT.json");
+//const contractJson = fs.readFileSync("../../abi/BuyTheDipNFT.json");
 
 const initData = {
   pre_heading: "Tasty NFTs",
@@ -14,7 +14,17 @@ const initData = {
   btn_1: "Mint an NFT",
   btn_2: "Contact Us",
 };
-const abi = JSON.parse(contractJson);
+
+//const abi = JSON.parse(BuyTheDipNFT);
+//const abi = {
+//  "abi" : "blabla",
+//  "first_name"  :  "Sammy",
+//  "last_name"   :  "Shark",
+//  "online"      :  true
+//}
+//const abi = [{"name":"NewExchange","inputs":[{"type":"address","name":"token","indexed":true},{"type":"address","name":"exchange","indexed":true}],"anonymous":false,"type":"event"},{"name":"initializeFactory","outputs":[],"inputs":[{"type":"address","name":"template"}],"constant":false,"payable":false,"type":"function","gas":35725},{"name":"createExchange","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"address","name":"token"}],"constant":false,"payable":false,"type":"function","gas":187911},{"name":"getExchange","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"address","name":"token"}],"constant":true,"payable":false,"type":"function","gas":715},{"name":"getToken","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"address","name":"exchange"}],"constant":true,"payable":false,"type":"function","gas":745},{"name":"getTokenWithId","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"uint256","name":"token_id"}],"constant":true,"payable":false,"type":"function","gas":736},{"name":"exchangeTemplate","outputs":[{"type":"address","name":"out"}],"inputs":[],"constant":true,"payable":false,"type":"function","gas":633},{"name":"tokenCount","outputs":[{"type":"uint256","name":"out"}],"inputs":[],"constant":true,"payable":false,"type":"function","gas":663}]
+
+console.log(abiBTD)
 
 let _tokenId = 1;
 let _dipLevel = 1; //tokenIdToDipLevel[_tokenId];
@@ -33,11 +43,8 @@ let ENDPOINT_ETH =
 //let ENDPOINT_TESTNET_ROPSTEN_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/ropsten";
 //let ENDPOINT_TESTNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet";
 //let ENDPOINT_MAINNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/mainnet";
-
-let ENDPOINT_WSS_ETH_TESTNET =
-  "wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
-let ENDPOINT_WSS_BSC_TESTNET =
-  "wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
+let ENDPOINT_WSS_ETH_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
+let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
 
 //todo-- create getMinABI function or use existing function to get ABI
 
@@ -53,13 +60,13 @@ class Mint extends Component {
     };
   }
 
-  contract = new Contract(abi, buyTheDipAddress, {
+  contract = new Contract(abiBTD, buyTheDipAddress, {
     from: this.props.account,
   });
 
   mintNFT(ether, percentage) {
     this.contract.methods
-      .mint(percentage)
+      .createCollectible(percentage)
       .send({ from: this.props.account, value: ether })
       .then((balance) => {
         console.log(balance);

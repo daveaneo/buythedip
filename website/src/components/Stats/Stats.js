@@ -9,9 +9,15 @@ const initData = {
 };
 
 class Stats extends Component {
-  state = {
-    data: {},
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: {},
+      ether: 0,
+      percent: 0,
+    };
+  }
+
   componentDidMount() {
     this.setState({
       data: initData,
@@ -26,6 +32,7 @@ class Stats extends Component {
           <li> Total Loans: $213,000 </li>
           <li> NFTs:  199</li>
           <li> Dips Bought:  52</li>
+          <li> Address:  {this.props.address}</li>
 
           </ul>
 

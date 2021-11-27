@@ -150,7 +150,7 @@ class UnconnectedApp extends Component {
           walletProps={{ connect: this.onConnect, address: this.state.address }}
         />
         <Hero />
-        <Stats />
+        <Stats props={{ account: this.state.address }}/>
         <Mint props={{ account: this.state.address }} />
         <MyNFTs />
         <Stake />
