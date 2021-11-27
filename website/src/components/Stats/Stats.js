@@ -70,10 +70,6 @@ class Stats extends Component {
   }
 
 
-
-
-
-
   render() {
     return (
       <section className="hero-section">

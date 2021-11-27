@@ -151,7 +151,10 @@ class UnconnectedApp extends Component {
         />
         <Hero />
         <Stats props={{ account: this.state.address }}/>
-        <Mint props={{ account: this.state.address }} />
+        <Mint props={{
+        account: this.state.address,
+        web3Modal: this.state.web3Modal,
+         }} />
         <MyNFTs />
         <Stake />
         <Leaderboard />

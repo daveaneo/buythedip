@@ -50,9 +50,9 @@ class Mint extends Component {
       percent: 0,
     };
   }
-    web3  = new Web3(web3Modal.connect())
-    contract = new web3.eth.Contract(abiBTD,buyTheDipAddress)
-//  contract = new Contract(abiBTD, buyTheDipAddress);
+//    web3  = new Web3(web3Modal.connect())
+//    contract = new web3.eth.Contract(abiBTD,buyTheDipAddress)
+  contract = new Contract(abiBTD, buyTheDipAddress);
 
   mintNFT(ether, percentage) {
     this.contract.methods
@@ -66,7 +66,7 @@ class Mint extends Component {
   getTokenCounter() {
     return this.contract.methods
       .tokenCounter()
-      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .call()
       .then((balance) => {
         console.log(balance);
       });
@@ -75,7 +75,7 @@ class Mint extends Component {
   getTotalStableCoin() {
     return this.contract.methods
       .totalStableCoin()
-      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .call()
       .then((balance) => {
         console.log(balance);
       });
