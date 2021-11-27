@@ -61,7 +61,7 @@ class Stats extends Component {
 
   getTotalStableCoin() {
     return 0;
-    return await this.contract.methods
+    return this.contract.methods
       .totalStableCoin()
       .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
       .then((balance) => {

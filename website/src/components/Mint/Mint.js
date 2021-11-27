@@ -50,13 +50,14 @@ class Mint extends Component {
       percent: 0,
     };
   }
-
-  contract = new Contract(abiBTD, buyTheDipAddress);
+    web3  = new Web3(web3Modal.connect())
+    contract = new web3.eth.Contract(abiBTD,buyTheDipAddress)
+//  contract = new Contract(abiBTD, buyTheDipAddress);
 
   mintNFT(ether, percentage) {
     this.contract.methods
       .createCollectible(parseInt(percentage))
-      .send({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17", value: parseInt(ether) })
+      .send({from: this.props.props.account, value: parseInt(ether) })
       .then((balance) => {
         console.log(balance);
       });
