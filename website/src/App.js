@@ -131,29 +131,19 @@ class UnconnectedApp extends Component {
     this.setState({ isConnected: true });
   };
 
-  updateToReduxStore() {
-    const { dispatch } = this.props;
-    dispatch(updateWeb3Data(this.state));
-  }
   validateNetwork = (networkId) => {
     if (networkId !== (4 || 1 || 97 || 56)) {
       // throw error dialog
     }
   };
 
-  // componentDidMount() {
-  //   if (this.web3Modal.cachedProvider) {
-  //     this.onConnect();
-  //   }
-  //   this.updateToReduxStore();
-  // }
+  componentDidMount() {
+    if (this.web3Modal.cachedProvider) {
+      this.onConnect();
+    }
+  }
 
   render() {
-    if (this.props.balanceFieldsShouldUpdate) {
-      // this.updateBalance(this.state.accounts);
-      // this.props.dispatch(balanceFieldsShouldUpdate(false));`
-    }
-
     return (
       <div>
         <Header
