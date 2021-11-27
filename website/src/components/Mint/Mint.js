@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import "./Mint.css";
+import Web3 from "web3";
 
 const initData = {
   pre_heading: "Tasty NFTs",
@@ -9,31 +10,48 @@ const initData = {
   btn_2: "Contact Us",
 };
 
-        let _tokenId = 1;
-        let _dipLevel = 1; //tokenIdToDipLevel[_tokenId];
-        let _strikePrice = 2500; //uint256(tokenIdToDipValue[_tokenId]);
-        let _RADIUS = 78; // 80 - 2
-        let _latestPrice = 4700; //let(getLatestPrice());
-        let _circleRadius = 0;
-        let _lendingBalance = 1234;
-        let _energy = 0;
+
+
+
+
+let _tokenId = 1;
+let _dipLevel = 1; //tokenIdToDipLevel[_tokenId];
+let _strikePrice = 2500; //uint256(tokenIdToDipValue[_tokenId]);
+let _RADIUS = 78; // 80 - 2
+let _latestPrice = 4700; //let(getLatestPrice());
+let _circleRadius = 0;
+let _lendingBalance = 1234;
+let _energy = 0;
+let account = "0xsdfs9lsls..."
+let buyTheDipAddress = "0xslisdf..."
+
+//todo-- create getMinABI function or use existing function to get ABI
+let contract = new Web3.eth.Contract(this.getMinABI(), buyTheDipAddress, {
+     from: account
+});
+
+function mintNFT(Ether, percentage) {
+    contract.methods.mint('your address').send(percentage, {from: account, value:Ether}).then((balance) => {
+       console.log(balance)
+    });
+
+
+  return true;
+}
+
 
 class Mint extends Component {
   state = {
     data: {},
   };
-  componentDidMount() {
-    this.setState({
-      data: initData,
-    });
-  }
-  render() {
-    return (
-      <section className="hero-section">
-        <div className="container">
 
-        <label for="Coin">ETH to add:</label>
-        <input type="number" id="Coin" name="Coin" min="0.1" step="0.01" />
+  render() {
+
+    return (
+      <section className="hero-section" id="mint">
+        <div className="container">
+        <label for="CoinAmount">ETH to add:</label>
+        <input type="number" id="CoinAmount" name="CoinAmount" min="0.1" step="0.01" />
         <label for="DipPercent">Percent Dip to Repurchase:</label>
         <input type="number" id="DipPercent" name="DipPercent" min="10" step="1" max="100" />
 
@@ -74,7 +92,7 @@ class Mint extends Component {
 
 
           <div className="button-group">
-            <a className="btn btn-bordered-white" href="/explore-1">
+            <a className="btn btn-bordered-white">
               <i className="icon-rocket mr-2" />
               {this.state.data.btn_1}
             </a>

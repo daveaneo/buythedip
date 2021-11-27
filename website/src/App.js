@@ -87,15 +87,10 @@ class UnconnectedApp extends Component {
 
   onConnect = async () => {
     const provider = await this.web3Modal.connect();
-
     await this.subscribeProvider(provider);
-
     const web3 = this.initWeb3(provider);
-
     const accounts = await web3.eth.getAccounts();
-
     const address = accounts[0];
-
     const networkId = await web3.eth.net.getId();
 
     if (
@@ -110,7 +105,6 @@ class UnconnectedApp extends Component {
     }
 
     const chainId = await web3.eth.chainId();
-
     const pegBalance = await web3.eth.getBalance(address);
 
     await this.setState({
@@ -155,7 +149,9 @@ class UnconnectedApp extends Component {
           walletProps={{ connect: this.onConnect, address: this.state.address }}
         />
 
-        <MyRouts />
+        <MyRouts
+          address={this.state.address}
+        />
       </div>
     );
   }
