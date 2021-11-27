@@ -15,15 +15,6 @@ const initData = {
   btn_2: "Contact Us",
 };
 
-//const abi = JSON.parse(BuyTheDipNFT);
-//const abi = {
-//  "abi" : "blabla",
-//  "first_name"  :  "Sammy",
-//  "last_name"   :  "Shark",
-//  "online"      :  true
-//}
-//const abi = [{"name":"NewExchange","inputs":[{"type":"address","name":"token","indexed":true},{"type":"address","name":"exchange","indexed":true}],"anonymous":false,"type":"event"},{"name":"initializeFactory","outputs":[],"inputs":[{"type":"address","name":"template"}],"constant":false,"payable":false,"type":"function","gas":35725},{"name":"createExchange","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"address","name":"token"}],"constant":false,"payable":false,"type":"function","gas":187911},{"name":"getExchange","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"address","name":"token"}],"constant":true,"payable":false,"type":"function","gas":715},{"name":"getToken","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"address","name":"exchange"}],"constant":true,"payable":false,"type":"function","gas":745},{"name":"getTokenWithId","outputs":[{"type":"address","name":"out"}],"inputs":[{"type":"uint256","name":"token_id"}],"constant":true,"payable":false,"type":"function","gas":736},{"name":"exchangeTemplate","outputs":[{"type":"address","name":"out"}],"inputs":[],"constant":true,"payable":false,"type":"function","gas":633},{"name":"tokenCount","outputs":[{"type":"uint256","name":"out"}],"inputs":[],"constant":true,"payable":false,"type":"function","gas":663}]
-
 console.log(abiBTD)
 
 let _tokenId = 1;
@@ -66,14 +57,27 @@ class Mint extends Component {
 
   mintNFT(ether, percentage) {
     this.contract.methods
-      .createCollectible(percentage)
-      .send({ from: this.props.account, value: ether })
+      .createCollectible(parseInt(percentage))
+      .send({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17", value: parseInt(ether) })
       .then((balance) => {
         console.log(balance);
       });
   }
 
+  getEthBalance() {
+    return this.contract.methods
+      .tokenCounter()
+      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .then((balance) => {
+        console.log(balance);
+      });
+  }
+
+
   render() {
+
+   console.log("balance: " + (this.getEthBalance()));
+
     return (
       <section className="hero-section" id="mint">
         <div className="container">
@@ -109,31 +113,31 @@ class Mint extends Component {
               <circle className="inner-plate-line" />
               {/* Data*/}
               {/* Current Eth Price*/}
-              <text x="35" y="45" font-weight="bold" fill="brown">
+              <text x="35" y="45" fontWeight="bold" fill="brown">
                 Current Price:
               </text>
-              <text x="175" y="45" font-weight="normal" fill="brown">
+              <text x="175" y="45" fontWeight="normal" fill="brown">
                 ${_latestPrice}{" "}
               </text>
               {/* Strike Price*/}
-              <text x="35" y="60" font-weight="bold" fill="brown">
+              <text x="35" y="60" fontWeight="bold" fill="brown">
                 Strike Price:
               </text>
-              <text x="175" y="60" font-weight="normal" fill="brown">
+              <text x="175" y="60" fontWeight="normal" fill="brown">
                 ${_strikePrice}{" "}
               </text>
               {/* Stable Coin Invested (conversion)*/}
-              <text x="35" y="75" font-weight="bold" fill="brown">
+              <text x="35" y="75" fontWeight="bold" fill="brown">
                 USDC Invested:
               </text>
-              <text x="175" y="75" font-weight="normal" fill="brown">
+              <text x="175" y="75" fontWeight="normal" fill="brown">
                 ${_lendingBalance}{" "}
               </text>
               {/* Energy*/}
-              <text x="35" y="90" font-weight="bold" fill="brown">
+              <text x="35" y="90" fontWeight="bold" fill="brown">
                 Energy:
               </text>
-              <text x="175" y="90" font-weight="normal" fill="brown">
+              <text x="175" y="90" fontWeight="normal" fill="brown">
                 {" "}
                 {_energy}
               </text>
@@ -142,9 +146,9 @@ class Mint extends Component {
               <text
                 x="50%"
                 y="23"
-                text-anchor="middle"
-                font-weight="bold"
-                font-size="1.1em"
+                textAnchor="middle"
+                fontWeight="bold"
+                fontSize="1.1em"
                 fill="white"
               >
                 {" "}
@@ -154,9 +158,9 @@ class Mint extends Component {
               <text
                 x="50%"
                 y="338"
-                text-anchor="middle"
-                font-weight="bold"
-                font-size="1.1em"
+                textAnchor="middle"
+                fontWeight="bold"
+                fontSize="1.1em"
                 fill="white"
               >
                 {" "}
