@@ -26,9 +26,11 @@ let account = "0xsdfs9lsls..."
 let buyTheDipAddress = "0xslisdf..."
 
 //todo-- create getMinABI function or use existing function to get ABI
-let contract = new Web3.eth.Contract(this.getMinABI(), buyTheDipAddress, {
-     from: account
-});
+//let contract = new Web3.eth.Contract(this.getMinABI(), buyTheDipAddress, {
+//     from: account
+//});
+
+let contract=0;
 
 function mintNFT(Ether, percentage) {
     contract.methods.mint('your address').send(percentage, {from: account, value:Ether}).then((balance) => {
