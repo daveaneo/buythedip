@@ -1,4 +1,7 @@
 import React, { Component } from "react";
+import Web3 from "web3";
+import abiBTD from "../../abi/BuyTheDipNFT.json";
+import Contract from "web3-eth-contract";
 
 const initData = {
   pre_heading: "Tasty NFTs",
@@ -7,6 +10,25 @@ const initData = {
   btn_1: "Mint an NFT",
   btn_2: "Contact Us",
 };
+
+
+const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
+const dipStakingAddress = "0xa3CCd7d5Fc57960a67620985e75EaB232D22E2be";
+let ENDPOINT_ETH =
+  "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
+//let ENDPOINT_TESTNET_ROPSTEN_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/ropsten";
+//let ENDPOINT_TESTNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet";
+//let ENDPOINT_MAINNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/mainnet";
+let ENDPOINT_WSS_ETH_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
+let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
+
+//todo-- create getMinABI function or use existing function to get ABI
+
+Contract.setProvider(ENDPOINT_WSS_ETH_TESTNET);
+
+
 
 class Stats extends Component {
   constructor(props) {
@@ -23,17 +45,44 @@ class Stats extends Component {
       data: initData,
     });
   }
+
+  contract = new Contract(abiBTD, buyTheDipAddress);
+
+
+  getTokenCounter() {
+    return 0;
+    return this.contract.methods
+      .tokenCounter()
+      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .then((balance) => {
+        console.log(balance);
+      });
+  }
+
+  getTotalStableCoin() {
+    return 0;
+    return await this.contract.methods
+      .totalStableCoin()
+      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .then((balance) => {
+        console.log(balance);
+      });
+  }
+
+
+
+
+
+
   render() {
     return (
       <section className="hero-section">
         <div className="container">
 
           <ul> Stats
-          <li> Total Loans: $213,000 </li>
-          <li> NFTs:  199</li>
-          <li> Dips Bought:  52</li>
-          <li> Address:  {this.props.address}</li>
-
+          <li> Total Loans: {this.getTotalStableCoin()} </li>
+          <li> NFTs:  {this.getTokenCounter()}</li>
+          <li> Address:  {this.props.props.account}</li>
           </ul>
 
         </div>

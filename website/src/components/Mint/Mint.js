@@ -51,9 +51,7 @@ class Mint extends Component {
     };
   }
 
-  contract = new Contract(abiBTD, buyTheDipAddress, {
-    from: this.props.account,
-  });
+  contract = new Contract(abiBTD, buyTheDipAddress);
 
   mintNFT(ether, percentage) {
     this.contract.methods
@@ -64,7 +62,7 @@ class Mint extends Component {
       });
   }
 
-  getEthBalance() {
+  getTokenCounter() {
     return this.contract.methods
       .tokenCounter()
       .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
@@ -73,10 +71,19 @@ class Mint extends Component {
       });
   }
 
+  getTotalStableCoin() {
+    return this.contract.methods
+      .totalStableCoin()
+      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .then((balance) => {
+        console.log(balance);
+      });
+  }
 
   render() {
 
-   console.log("balance: " + (this.getEthBalance()));
+   console.log("Total NFTs: " + (this.getTokenCounter()));
+   console.log("Total Stablecoin: " + (this.getTotalStableCoin()));
 
     return (
       <section className="hero-section" id="mint">
