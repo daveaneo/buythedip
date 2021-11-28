@@ -619,6 +619,7 @@ event Received(address sender, uint amount);
             if(count>=total){ break; }
             if(ownerOf(i)==_addy){
                 owned[count]=i;
+                count +=1;
             }
         }
 

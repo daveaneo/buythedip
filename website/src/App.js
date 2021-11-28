@@ -180,7 +180,11 @@ class UnconnectedApp extends Component {
         account: this.state.address,
         web3Modal: this.web3Modal,
          }} />
-        <MyNFTs />
+        <MyNFTs props={{
+            account: this.state.address,
+            web3Modal: this.web3Modal,
+         }}
+         />
         <Stake />
         <Leaderboard />
         <Auctions />
