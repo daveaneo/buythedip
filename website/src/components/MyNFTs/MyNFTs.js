@@ -94,6 +94,7 @@ class MyNFTs extends Component {
             let image = metadata["image"];
             pattern.img = image;
             pattern.id = _id;
+            pattern.seller = "Coming Soon";//this.props.props.account;
             pattern.strikePrice = metadata["attributes"][1]["value"];
 //            pattern.id = metadata["attributes"];
             pattern.seller_thumb = image;
@@ -102,17 +103,15 @@ class MyNFTs extends Component {
         else{
             console.log("_id not in dictionary", _id, "delaying.")
         }
-
-//        console.log(atob(info.value));
     }
-    this.state.data = data;
+//    this.state.data = data;
 
-//    this.state = {
-//        data: data,
-//    };
+    this.setState({
+      data: data,
+    });
 
 
-    console.log(data)
+//    console.log(data)
     console.log(this.state.data)
   }
 
