@@ -48,9 +48,12 @@ class Mint extends Component {
     super(props);
     this.state = {
       data: {},
-      ether: 0,
-      percent: 0,
+      ether: 0.1,
+      percent: 25,
+      etherPrice: 0,
     };
+    this.getLatestPrice();
+    console.log("STATE: ", this.state);
   }
 
 web3  = new Web3(this.props.props.web3Modal.connect());
@@ -73,6 +76,18 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
         console.log(balance);
       });
   }
+
+  getLatestPrice() {
+    return this.contract.methods
+      .getLatestPrice()
+      .call()
+      .then((price) => {
+        console.log("eth price:", price);
+        this.state.etherPrice = price;
+      });
+  }
+
+
 
   getTotalStableCoin() {
     return this.contract.methods
@@ -124,21 +139,21 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
                 Current Price:
               </text>
               <text x="175" y="45" fontWeight="normal" fill="brown">
-                ${_latestPrice}{" "}
+                ${parseFloat(this.state.etherPrice/10**9).toFixed(2)}{" "}
               </text>
               {/* Strike Price*/}
               <text x="35" y="60" fontWeight="bold" fill="brown">
                 Strike Price:
               </text>
               <text x="175" y="60" fontWeight="normal" fill="brown">
-                ${_strikePrice}{" "}
+                ${parseFloat(this.state.percent*this.state.etherPrice/10**9/100).toFixed(2)}{" "}
               </text>
               {/* Stable Coin Invested (conversion)*/}
               <text x="35" y="75" fontWeight="bold" fill="brown">
                 USDC Invested:
               </text>
               <text x="175" y="75" fontWeight="normal" fill="brown">
-                ${_lendingBalance}{" "}
+                ${parseFloat(this.state.ether*this.state.etherPrice/10**9).toFixed(2)}{" "}
               </text>
               {/* Energy*/}
               <text x="35" y="90" fontWeight="bold" fill="brown">
