@@ -18,25 +18,24 @@ const initData = {
 
 let _tokenId = 1;
 let _dipLevel = 1; //tokenIdToDipLevel[_tokenId];
-let _strikePrice = 2500; //uint256(tokenIdToDipValue[_tokenId]);
-let _RADIUS = 78; // 80 - 2
-let _latestPrice = 4700; //let(getLatestPrice());
-let _circleRadius = 0;
-let _lendingBalance = 1234;
+//let _strikePrice = 2500; //uint256(tokenIdToDipValue[_tokenId]);
+//let _RADIUS = 78; // 80 - 2
+//let _latestPrice = 4700; //let(getLatestPrice());
+//let _circleRadius = 0;
+//let _lendingBalance = 1234;
 let _energy = 0;
 
 //const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
 const buyTheDipAddress = "0x538D826935251739E47409990b31c339d1D49749";
 const dipStakingAddress = "0xa3CCd7d5Fc57960a67620985e75EaB232D22E2be";
-let ENDPOINT_ETH =
-  "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_ETH = "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
 //let ENDPOINT_TESTNET_ROPSTEN_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/ropsten";
 //let ENDPOINT_TESTNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet";
 //let ENDPOINT_MAINNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/mainnet";
 let ENDPOINT_WSS_ETH_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
-let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
+//let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
 
 
 Contract.setProvider(ENDPOINT_WSS_ETH_TESTNET);
@@ -52,8 +51,12 @@ class Mint extends Component {
       percent: 25,
       etherPrice: 0,
     };
-    this.getLatestPrice();
+//    this.getLatestPrice();
     console.log("STATE: ", this.state);
+  }
+
+ componentDidMount(){
+    this.getLatestPrice();
   }
 
 web3  = new Web3(this.props.props.web3Modal.connect());
@@ -83,7 +86,9 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
       .call()
       .then((price) => {
         console.log("eth price:", price);
-        this.state.etherPrice = price;
+        this.setState({
+          etherPrice: price,
+        });
       });
   }
 

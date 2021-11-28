@@ -14,15 +14,14 @@ const initData = {
 
 const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
 const dipStakingAddress = "0xa3CCd7d5Fc57960a67620985e75EaB232D22E2be";
-let ENDPOINT_ETH =
-  "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_ETH = "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
 //let ENDPOINT_TESTNET_ROPSTEN_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/ropsten";
 //let ENDPOINT_TESTNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet";
 //let ENDPOINT_MAINNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/mainnet";
 let ENDPOINT_WSS_ETH_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
-let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
+//let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
 
 //todo-- create getMinABI function or use existing function to get ABI
 
@@ -37,6 +36,7 @@ class Stats extends Component {
       data: {},
       ether: 0,
       percent: 0,
+      tokens:0,
     };
   }
 
@@ -44,18 +44,23 @@ class Stats extends Component {
     this.setState({
       data: initData,
     });
+    this.getTokenCounter()
+    console.log("Stats State", this.state);
+
   }
 
   contract = new Contract(abiBTD, buyTheDipAddress);
 
 
   getTokenCounter() {
-    return 0;
     return this.contract.methods
       .tokenCounter()
       .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
-      .then((balance) => {
-        console.log(balance);
+      .then((tokens) => {
+        console.log("tokens found:", parseInt(tokens));
+        this.setState({
+          tokens: parseInt(tokens),
+        });
       });
   }
 
@@ -74,10 +79,9 @@ class Stats extends Component {
     return (
       <section className="hero-section">
         <div className="container">
-
           <ul> Stats
           <li> Total Loans: {this.getTotalStableCoin()} </li>
-          <li> NFTs:  {this.getTokenCounter()}</li>
+          <li> NFTs:  {this.state.tokens}</li>
           <li> Address:  {this.props.props.account}</li>
           </ul>
 
