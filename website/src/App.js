@@ -150,22 +150,23 @@ class UnconnectedApp extends Component {
 
   render() {
 
-  function doTheThing(){
-    let buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
-    let web3  = new Web3(web3Modal.connect())
-    let contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
-    function mintNFT(ether, percentage) {
-    this.contract.methods
-      .createCollectible(parseInt(percentage))
-      .send({from: this.props.props.account, value: parseInt(ether) })
-      .then((balance) => {
-        console.log(balance);
-      });
-  };
-
-  mintNFT(0.1,15);
-  };
-  doTheThing();
+// todo-- had trouble getting this to work
+//  function doTheThing(){
+//    let buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
+//    let web3  = new Web3(web3Modal.connect())
+//    let contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
+//    function mintNFT(ether, percentage) {
+//    this.contract.methods
+//      .createCollectible(parseInt(percentage))
+//      .send({from: this.props.props.account, value: parseInt(ether) })
+//      .then((balance) => {
+//        console.log(balance);
+//      });
+//  };
+//
+//  mintNFT(0.1,15);
+//  };
+//  doTheThing();
 
 
     return (
@@ -177,7 +178,7 @@ class UnconnectedApp extends Component {
         <Stats props={{ account: this.state.address }}/>
         <Mint props={{
         account: this.state.address,
-        web3Modal: this.state.web3Modal,
+        web3Modal: this.web3Modal,
          }} />
         <MyNFTs />
         <Stake />
