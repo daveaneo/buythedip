@@ -48,8 +48,8 @@ class MyNFTs extends Component {
       initData: initData,
       data: data,
     });
-      this.getAllNFTsByOwner();
-//    this.populateData([0,1]);
+//      this.getAllNFTsByOwner();
+    this.populateData([0,1,2,3,4]);
 
   }
 
@@ -85,7 +85,6 @@ class MyNFTs extends Component {
         }
 
         let _id = parseInt(array[i]);
-        pattern.title = "#"  + _id;
         await this.getTokenInfo(_id); // todo wait for completion
         if (_id in dicNFT ){
             console.log("found", _id);
@@ -94,10 +93,15 @@ class MyNFTs extends Component {
             let image = metadata["image"];
             pattern.img = image;
             pattern.id = _id;
-            pattern.seller = "Coming Soon";//this.props.props.account;
+            pattern.seller = typeof(this.props.props.account)=="undefined"?"My Address":this.props.props.account;// this.props.props.account;
+            pattern.asset = "Ether";
+            pattern.blockchain = "Ethereum";
             pattern.strikePrice = metadata["attributes"][1]["value"];
 //            pattern.id = metadata["attributes"];
             pattern.seller_thumb = image;
+            pattern.title = "Token Number: "  + _id;
+            pattern.description = metadata["description"];
+
             data.push(pattern);
         }
         else{
@@ -112,7 +116,7 @@ class MyNFTs extends Component {
 
 
 //    console.log(data)
-    console.log(this.state.data)
+    console.log("data in populateData: ", this.state.data)
   }
 
   async getAllNFTsByOwner() {
@@ -153,6 +157,7 @@ class MyNFTs extends Component {
             <div className="swiper-container slider-mid items">
               <div className="swiper-wrapper">
                 {/* Single Slide */}
+                {console.log("data to display:", this.state.data)}
                 {this.state.data.map((item, idx) => {
                   return (
                     <div key={`auc_${idx}`} className="swiper-slide item">
@@ -177,7 +182,8 @@ class MyNFTs extends Component {
                               />
                             </div>
                             <a href="/item-details">
-                              <h5 className="mb-0">{item.title}</h5>
+//                              <h5 className="mb-0">{item.title}</h5>
+                              <h5 className="mb-5">{item.description}</h5>
                             </a>
                             <a
                               className="seller d-flex align-items-center my-3"
@@ -191,7 +197,7 @@ class MyNFTs extends Component {
                               <span className="ml-2">{item.seller}</span>
                             </a>
                             <div className="card-bottom d-flex justify-content-between">
-                              <span>Taylor Pays: {item.price}</span>
+                              <span>{item.asset} on {item.blockchain}</span>
                               <span>{item.count}</span>
                             </div>
                           </div>
