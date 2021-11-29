@@ -48,8 +48,8 @@ class MyNFTs extends Component {
       initData: initData,
       data: data,
     });
-    //  this.getAllNFTsByOwner();
-    this.populateData([0,1]);
+      this.getAllNFTsByOwner();
+//    this.populateData([0,1]);
 
   }
 
@@ -118,7 +118,7 @@ class MyNFTs extends Component {
   async getAllNFTsByOwner() {
     console.log(this.props.props.account, typeof(this.props.props.account));
     console.log("0xfAD4322F3493481aE03995F90bEA8283f119Dd17");
-
+    if(!this.props.props.account) {return false};
     this.contract.methods
       .getAllNFTsByOwner(this.props.props.account).call({from: this.props.props.account})
       .then(NFTArray => {

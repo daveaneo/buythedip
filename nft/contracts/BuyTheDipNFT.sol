@@ -335,6 +335,35 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         }
     }
 
+    /** @dev Get all NFTs owned by owner.
+        @param _addy -- address to get list of NFTs of
+        @return -- list of token IDs owned by addy
+      */
+    function getAllNFTsByPreviousOwner(address _addy) public view returns (uint256[] memory){
+        uint256 total=0;
+        uint256 _tokenCounter = BTD.tokenCounter();
+        for(uint256 i=0;i<_tokenCounter;i++){
+            if(previousOwner(i)==_addy){
+                total +=1;
+            }
+        }
+
+        uint256[] memory owned = new uint256[](total);
+        uint256 count=0;
+
+        // Two cycles are needed because of inability to push integers to memory array
+        for(uint256 i=0;i<_tokenCounter;i++){
+            if(count>=total){ break; }
+            if(previousOwner(i)==_addy){
+                owned[count]=i;
+                count +=1;
+            }
+        }
+        return owned;
+    }
+
+
+
     /** @dev Upkeep when receiving NFTs
       */
 //    function stake(uint256 _id) external returns(bool) {
@@ -597,7 +626,6 @@ event Received(address sender, uint amount);
         }
     }
 
-    //todo--test
     /** @dev Get all NFTs owned by owner.
         @param _addy -- address to get list of NFTs of
         @return -- list of token IDs owned by addy

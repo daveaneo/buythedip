@@ -37,6 +37,7 @@ class Stats extends Component {
       ether: 0,
       percent: 0,
       tokens:0,
+      totalLoans:0,
     };
   }
 
@@ -45,6 +46,7 @@ class Stats extends Component {
       data: initData,
     });
     this.getTokenCounter()
+    this.getTotalStableCoin()
     console.log("Stats State", this.state);
 
   }
@@ -64,13 +66,19 @@ class Stats extends Component {
       });
   }
 
+  numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
   getTotalStableCoin() {
-    return 0;
     return this.contract.methods
       .totalStableCoin()
       .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
-      .then((balance) => {
-        console.log(balance);
+      .then((loans) => {
+        console.log(loans);
+        this.setState({
+          totalLoans: parseFloat(loans/10**6).toFixed(2),
+        });
       });
   }
 
@@ -80,9 +88,10 @@ class Stats extends Component {
       <section className="hero-section">
         <div className="container">
           <ul> Stats
-          <li> Total Loans: {this.getTotalStableCoin()} </li>
-          <li> NFTs:  {this.state.tokens}</li>
-          <li> Address:  {this.props.props.account}</li>
+          <li> Total Loans: ${this.numberWithCommas(this.state.totalLoans)} </li>
+          <li> Total NFTs:  {this.state.tokens}</li>
+          <li> BTD Contract Address:  {buyTheDipAddress}</li>
+          <li> Staking Address:  {dipStakingAddress}</li>
           </ul>
 
         </div>
