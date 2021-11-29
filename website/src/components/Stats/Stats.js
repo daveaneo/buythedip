@@ -47,8 +47,6 @@ class Stats extends Component {
     });
     this.getTokenCounter()
     this.getTotalStableCoin()
-    console.log("Stats State", this.state);
-
   }
 
   contract = new Contract(abiBTD, buyTheDipAddress);
@@ -59,7 +57,6 @@ class Stats extends Component {
       .tokenCounter()
       .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
       .then((tokens) => {
-        console.log("tokens found:", parseInt(tokens));
         this.setState({
           tokens: parseInt(tokens),
         });
@@ -75,7 +72,6 @@ class Stats extends Component {
       .totalStableCoin()
       .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
       .then((loans) => {
-        console.log(loans);
         this.setState({
           totalLoans: parseFloat(loans/10**6).toFixed(2),
         });

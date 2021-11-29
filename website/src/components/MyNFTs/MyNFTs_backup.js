@@ -87,7 +87,6 @@ class MyNFTs extends Component {
         let _id = parseInt(array[i]);
         await this.getTokenInfo(_id); // todo wait for completion
         if (_id in dicNFT ){
-            console.log("found", _id);
             let encoded = dicNFT[_id].split("data:application/json;base64,")[1];
             let metadata = JSON.parse(decode(encoded));
             let image = metadata["image"];
@@ -125,7 +124,6 @@ class MyNFTs extends Component {
     this.contract.methods
       .getAllNFTsByOwner(this.props.props.account).call({from: this.props.props.account})
       .then(NFTArray => {
-        console.log("NFTArray", NFTArray);
         this.populateData(NFTArray);
       });
   }

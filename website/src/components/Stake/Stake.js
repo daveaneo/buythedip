@@ -1,4 +1,12 @@
 import React, { Component } from "react";
+import "./Stake.css";
+import Web3 from "web3";
+//import fs from "fs";
+import abiBTD from "../../abi/BuyTheDipNFT.json";
+import Contract from "web3-eth-contract";
+//const { ethers } = require('ethers');
+
+//const contractJson = fs.readFileSync("../../abi/BuyTheDipNFT.json");
 
 const initData = {
   pre_heading: "Tasty NFTs",
@@ -8,32 +16,138 @@ const initData = {
   btn_2: "Contact Us",
 };
 
+let _tokenId = 1;
+let _dipLevel = 1; //tokenIdToDipLevel[_tokenId];
+let _energy = 0;
+
+//const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
+const buyTheDipAddress = "0x538D826935251739E47409990b31c339d1D49749";
+const dipStakingAddress = "0x0D96711abC600CC43d10AC8bCd1A566465Bf342E";
+//let ENDPOINT_ETH = "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
+//let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
+//let ENDPOINT_TESTNET_ROPSTEN_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/ropsten";
+//let ENDPOINT_TESTNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet";
+//let ENDPOINT_MAINNET_BSC="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/mainnet";
+let ENDPOINT_WSS_ETH_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
+//let ENDPOINT_WSS_BSC_TESTNET="wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/bsc/testnet/ws";
+
+Contract.setProvider(ENDPOINT_WSS_ETH_TESTNET);
+var web3 = new Web3();
+web3.setProvider(window.ethereum);
+
 class Stake extends Component {
-  state = {
-    data: {},
-  };
-  componentDidMount() {
-    this.setState({
-      data: initData,
-    });
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: {},
+      ether: 0.1,
+      percent: 25,
+      etherPrice: 0,
+      tokenCounter:10**14,
+    };
   }
+
+ componentDidMount(){
+    this.getLatestPrice();
+    this.getTokenCounter();
+  }
+
+web3  = new Web3(this.props.props.web3Modal.connect());
+contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
+
+  stakeNFT(_id) {
+      console.log("NOW STAKING:", _id);
+
+      // Approve
+//    btd.approve(dip_staking.address, 0, {"from": dev})
+    this.contract.methods
+      .approve(dipStakingAddress, _id)
+      .send({from: this.props.props.account})
+      .then((result) => {
+        console.log(result);
+      });
+
+      // Transfer
+//    btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
+    this.contract.methods
+      .safeTransferFrom(this.props.props.account, dipStakingAddress, _id)
+      .send({from: this.props.props.account})
+      .then((result) => {
+        console.log(result);
+      });
+
+//    this.contract.methods
+//      .createCollectible(parseFloat(percentage))
+//      .send({from: this.props.props.account, value: parseFloat(ether)*10**18 })
+//      .then((balance) => {
+//        console.log(balance);
+//      });
+  }
+
+  getTokenCounter() {
+    return this.contract.methods
+      .tokenCounter()
+      .call()
+      .then((counter) => {
+        console.log(counter);
+        this.setState({
+          tokenCounter: counter,
+        });
+
+      });
+  }
+
+  getLatestPrice() {
+    return this.contract.methods
+      .getLatestPrice()
+      .call()
+      .then((price) => {
+        this.setState({
+          etherPrice: price,
+        });
+      });
+  }
+
+
+
+  getTotalStableCoin() {
+    return this.contract.methods
+      .totalStableCoin()
+      .call()
+      .then((balance) => {
+        console.log(balance);
+      });
+  }
+
   render() {
+
     return (
-      <section className="hero-section">
+      <section className="hero-section" id="mint">
         <div className="container">
-
-        <label for="TokenID">TokenID:</label>
-        <input type="number" id="TokenID" name="Coin" min="0" step="1" />
-
-          (STAKING BUTTON)
+          <h1>Stake</h1>
+          <div classname="flex-row">
+              <input
+                onChange={(event) => this.setState({ NFTToMint: event.target.value })}
+                type="number"
+                id="TokenId"
+                name="TokenId"
+                min="0"
+                step="1"
+                max={this.state.tokenCounter}
+                className ="input-field"
+              />
+              <label style= {{marginLeft: '1em'}} for="TokenId">Token Id</label>
+           </div>
           <div className="button-group">
-            <a className="btn btn-bordered-white" href="/explore-1">
+            <div
+              className="btn btn-bordered-white"
+              onClick={() => this.stakeNFT(this.state.NFTToMint)}
+            >
               <i className="icon-rocket mr-2" />
               {this.state.data.btn_1}
-            </a>
+            </div>
           </div>
-
-
         </div>
         {/* Shape */}
         <div className="shape">
@@ -60,9 +174,7 @@ class Stake extends Component {
               strokeWidth={1}
               fill="none"
               fillRule="evenodd"
-            >
-
-            </g>
+            ></g>
           </svg>
         </div>
       </section>

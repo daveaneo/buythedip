@@ -4,6 +4,7 @@ import React, { Component } from "react";
 import Hero from "./components/Hero/Hero";
 import Auctions from "./components/Auctions/AuctionsOne";
 import MyNFTs from "./components/MyNFTs/MyNFTs";
+import MyStakedNFTs from "./components/MyStakedNFTs/MyStakedNFTs";
 import Work from "./components/Work/Work";
 import Footer from "./components/Footer/Footer";
 import ModalSearch from "./components/Modal/ModalSearch";
@@ -185,7 +186,14 @@ class UnconnectedApp extends Component {
             web3Modal: this.web3Modal,
          }}
          />
-        <Stake />
+        <Stake props={{
+            account: this.state.address,
+            web3Modal: this.web3Modal,
+         }} />
+        <MyStakedNFTs props={{
+            account: this.state.address,
+            web3Modal: this.web3Modal,
+         }} />
         <Leaderboard />
         <Auctions />
         <Work />

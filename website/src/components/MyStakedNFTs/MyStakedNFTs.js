@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Web3 from "web3";
 import abiBTD from "../../abi/BuyTheDipNFT.json";
+import abiBTDStaking from "../../abi/DipStaking.json";
 import Contract from "web3-eth-contract";
 import { encode, decode } from "js-base64";
 import { SingleNFT } from "./SingleNFT";
@@ -8,13 +9,13 @@ import { SingleNFT } from "./SingleNFT";
 
 const initialData = {
   pre_heading: "My NFTs",
-  heading: "Ethereum",
+  heading: "Staking",
   btnText: "View All",
 };
 
 //const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
 const buyTheDipAddress = "0x538D826935251739E47409990b31c339d1D49749";
-const dipStakingAddress = "0xa3CCd7d5Fc57960a67620985e75EaB232D22E2be";
+const dipStakingAddress = "0x0D96711abC600CC43d10AC8bCd1A566465Bf342E";
 //let ENDPOINT_ETH = "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
@@ -28,7 +29,7 @@ let ENDPOINT_WSS_ETH_TESTNET =
 Contract.setProvider(ENDPOINT_WSS_ETH_TESTNET);
 let web3 = new Web3();
 
-// getAllNFTsByOwner
+// getAllNFTsByPreviousOwner
 
 var dicNFT = {};
 
@@ -37,7 +38,7 @@ const MyNFTs = ({ props }) => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    getAllNFTsByOwner();
+    getAllNFTsByPreviousOwner();
 //   populateData([0, 1, 2, 3, 4, 5]);
 
   }, [props.account]); //
@@ -47,6 +48,7 @@ const MyNFTs = ({ props }) => {
   web3.setProvider(window.ethereum);
 
   const contract = new web3.eth.Contract(abiBTD, buyTheDipAddress);
+  const stakingContract = new web3.eth.Contract(abiBTDStaking, dipStakingAddress);
 
   const getTokenInfo = async (_id) => {
     return contract.methods
@@ -80,7 +82,7 @@ const MyNFTs = ({ props }) => {
         let image = metadata["image"];
         pattern.img = image;
         pattern.id = _id;
-        pattern.seller = typeof(props.account)=="undefined"?"My Address":props.account.substring(0,16) +"...";// this.props.props.account;
+        pattern.seller = "Coming Soon"; // props.account;
         pattern.strikePrice = metadata["attributes"][1]["value"];
         //            pattern.id = metadata["attributes"];
         pattern.seller_thumb = image;
@@ -97,14 +99,18 @@ const MyNFTs = ({ props }) => {
     await setData(arrayData);
   };
 
-  const getAllNFTsByOwner = async () => {
+  const getAllNFTsByPreviousOwner = async () => {
+    console.log("In getAllNFTsByPreviousOwner");
     if (!props.account) return;
-    contract.methods
-      .getAllNFTsByOwner(props.account)
+    console.log("props.account: ", props.account);
+    stakingContract.methods
+      .getAllNFTsByPreviousOwner(props.account)
       .call({ from: props.account })
       .then((NFTArray) => {
+        console.log("MY STAKED TOKENS ARAY:", NFTArray);
         populateData(NFTArray);
       });
+    console.log("Out getAllNFTsByPreviousOwner");
   };
 
   return (

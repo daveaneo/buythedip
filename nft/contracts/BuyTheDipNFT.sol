@@ -343,7 +343,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         uint256 total=0;
         uint256 _tokenCounter = BTD.tokenCounter();
         for(uint256 i=0;i<_tokenCounter;i++){
-            if(previousOwner(i)==_addy){
+            if(previousOwner[i]==_addy){
                 total +=1;
             }
         }
@@ -354,7 +354,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         // Two cycles are needed because of inability to push integers to memory array
         for(uint256 i=0;i<_tokenCounter;i++){
             if(count>=total){ break; }
-            if(previousOwner(i)==_addy){
+            if(previousOwner[i]==_addy){
                 owned[count]=i;
                 count +=1;
             }

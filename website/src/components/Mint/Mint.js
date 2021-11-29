@@ -52,7 +52,6 @@ class Mint extends Component {
       etherPrice: 0,
     };
 //    this.getLatestPrice();
-    console.log("STATE: ", this.state);
   }
 
  componentDidMount(){
@@ -85,7 +84,6 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
       .getLatestPrice()
       .call()
       .then((price) => {
-        console.log("eth price:", price);
         this.setState({
           etherPrice: price,
         });
@@ -108,26 +106,39 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
     return (
       <section className="hero-section" id="mint">
         <div className="container">
-          <label for="CoinAmount">ETH to add:</label>
-          <input
-            onChange={(event) => this.setState({ ether: event.target.value })}
-            type="number"
-            id="CoinAmount"
-            name="CoinAmount"
-            min="0.1"
-            step="0.01"
-          />
-          <label for="DipPercent">Percent Dip to Repurchase:</label>
-          <input
-            onChange={(event) => this.setState({ percent: event.target.value })}
-            type="number"
-            id="DipPercent"
-            name="DipPercent"
-            min="10"
-            step="1"
-            max="100"
-          />
+          <h1>Mint</h1>
+          <div classname="flex-row">
+              <div classname="flex-row">
+                  <input
+                    onChange={(event) => this.setState({ ether: event.target.value })}
+                    type="number"
+                    id="CoinAmount"
+                    name="CoinAmount"
+                    min="0.1"
+                    step="0.01"
+                    className ="input-field"
+                    placeholder="1"
+                  />
+                  <label style= {{marginLeft: '1em'}} for="CoinAmount">ETH to add:</label>
 
+               </div>
+              <div classname="flex-column">
+                  <input
+                    onChange={(event) => this.setState({ percent: event.target.value })}
+                    type="number"
+                    id="DipPercent"
+                    name="DipPercent"
+                    min="10"
+                    step="1"
+                    max="100"
+                    className ="input-field"
+                    placeholder="25"
+
+                  />
+                  <label style= {{marginLeft: '1em'}} for="DipPercent">Percent Dip to Repurchase:</label>
+
+              </div>
+           </div>
           {/* PREVIEW OF NFT */}
           <div className="NFT-image-container">
             <svg xmlns="http://www.w3.org/2000/svg" width="350" height="350">
