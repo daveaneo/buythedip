@@ -694,9 +694,9 @@ event Received(address sender, uint amount);
         // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
     }
 
-    // todo: change to external after testing
     function performUpkeep(bytes calldata /* performData */) external override {
-        // todo
+        // todo -- update
+        performUpkeepTest(); // Putting this here to make the functionality more legit. It is still to develop fully
     }
 
     function performUpkeepTest() public {
