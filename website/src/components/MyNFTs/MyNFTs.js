@@ -38,9 +38,10 @@ const MyNFTs = ({ props }) => {
 
   useEffect(() => {
     getAllNFTsByOwner();
+//   populateData([0, 1, 2, 3, 4, 5]);
+
   }, [props.account]); //
 
-  // populateData([0, 1]);
 
   web3 = new Web3(props.web3Modal.connect());
   web3.setProvider(window.ethereum);
@@ -50,7 +51,7 @@ const MyNFTs = ({ props }) => {
   const getTokenInfo = async (_id) => {
     return contract.methods
       .tokenURI(_id)
-      .call({ from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17" })
+      .call({ from: props.account })
       .then((info) => {
         dicNFT[_id] = info;
       });
@@ -72,7 +73,6 @@ const MyNFTs = ({ props }) => {
       };
 
       let _id = parseInt(array[i]);
-      pattern.title = "#" + _id;
       await getTokenInfo(_id); // todo wait for completion
       if (_id in dicNFT) {
         console.log("found", _id);
@@ -85,6 +85,11 @@ const MyNFTs = ({ props }) => {
         pattern.strikePrice = metadata["attributes"][1]["value"];
         //            pattern.id = metadata["attributes"];
         pattern.seller_thumb = image;
+        pattern.title = "Token Number: "  + _id;
+        pattern.description = metadata["description"];
+        pattern.asset = "Ether";
+        pattern.blockchain = "Ethereum";
+
         arrayData.push(pattern);
       } else {
         console.log("_id not in dictionary", _id, "delaying.");

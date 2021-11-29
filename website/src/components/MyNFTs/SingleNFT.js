@@ -1,9 +1,9 @@
 export const SingleNFT = ({ data }) => {
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "row"}}>
       {data.map((item, idx) => {
         return (
-          <div key={`auc_${idx}`} className="swiper-slide item">
+          <div key={`auc_${idx}`} className="swiper-slide item" style={{ maxWidth: 350 }}>
             <div className="card">
               <div className="image-over">
                 <img className="card-img-top" src={item.img} alt="" />
@@ -33,7 +33,7 @@ export const SingleNFT = ({ data }) => {
                     <span className="ml-2">{item.seller}</span>
                   </a>
                   <div className="card-bottom d-flex justify-content-between">
-                    <span>Taylor Pays: {item.price}</span>
+                    <span>{item.asset} on {item.blockchain}</span>
                     <span>{item.count}</span>
                   </div>
                 </div>

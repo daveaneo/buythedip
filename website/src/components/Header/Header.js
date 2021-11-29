@@ -65,7 +65,7 @@ const Header = ({ walletProps }) => {
               </ul>
             </li> */}
             <li className="nav-item">
-              <a href="/activity" className="nav-link">
+              <a href="#" className="nav-link">
                 Activity
               </a>
             </li>
@@ -129,7 +129,7 @@ const Header = ({ walletProps }) => {
               </ul>
             </li> */}
             <li className="nav-item">
-              <a href="/contact" className="nav-link">
+              <a href="#" className="nav-link">
                 Contact
               </a>
             </li>
