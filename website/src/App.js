@@ -14,6 +14,7 @@ import Stats from "./components/Stats/Stats";
 import Mint from "./components/Mint/Mint";
 import Stake from "./components/Stake/Stake";
 import Leaderboard from "./components/Leaderboard/Leaderboard";
+import Whitepaper from "./components/Whitepaper/Whitepaper";
 import Header from "./components/Header/Header.js";
 import { updateWeb3Data, updateIsWrongNetworkOpen } from "./actions";
 import { connect } from "react-redux";
@@ -24,7 +25,7 @@ import inject from "./images/inject.png";
 import qr from "./images/qr-code.png";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import abiBTD from "./abi/BuyTheDipNFT.json";
-
+import "./App.css";
 
 
 class UnconnectedApp extends Component {
@@ -195,6 +196,7 @@ class UnconnectedApp extends Component {
             web3Modal: this.web3Modal,
          }} />
         <Leaderboard />
+        <Whitepaper />
         <Auctions />
         <Work />
         <Footer />

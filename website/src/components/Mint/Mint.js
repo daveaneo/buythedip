@@ -104,120 +104,127 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
   render() {
 
     return (
-      <section className="hero-section" id="mint">
+      <section className="hero-section" id="mint" className="gray-box">
         <div className="container">
           <h1>Mint</h1>
-          <div classname="flex-row">
-              <div classname="flex-row">
-                  <input
-                    onChange={(event) => this.setState({ ether: event.target.value })}
-                    type="number"
-                    id="CoinAmount"
-                    name="CoinAmount"
-                    min="0.1"
-                    step="0.01"
-                    className ="input-field"
-                    placeholder="1"
-                  />
-                  <label style= {{marginLeft: '1em'}} for="CoinAmount">ETH to add:</label>
+          <div className="flex-row">
+          <div className="flex-column-centered">
 
-               </div>
-              <div classname="flex-column">
-                  <input
-                    onChange={(event) => this.setState({ percent: event.target.value })}
-                    type="number"
-                    id="DipPercent"
-                    name="DipPercent"
-                    min="10"
-                    step="1"
-                    max="100"
-                    className ="input-field"
-                    placeholder="25"
-
-                  />
-                  <label style= {{marginLeft: '1em'}} for="DipPercent">Percent Dip to Repurchase:</label>
-
+                        {/* PREVIEW OF NFT */}
+              <div className="NFT-image-container">
+                <svg xmlns="http://www.w3.org/2000/svg" width="350" height="350">
+                  <rect width="350" height="350" className="NFT-box" />{" "}
+                  {/* style='fill:rgb(255,255,255);stroke-width:3;stroke:rgb(0,0,0)'*/}
+                  <rect className="bg-rectangle" />
+                  <rect className="inner-rectangle" />
+                  <rect className="extra-rectangle" />
+                  <circle className="outer-plate-line" />
+                  <circle className="inner-plate-line" />
+                  {/* Data*/}
+                  {/* Current Eth Price*/}
+                  <text x="35" y="45" fontWeight="bold" fill="brown">
+                    Current Price:
+                  </text>
+                  <text x="175" y="45" fontWeight="normal" fill="brown">
+                    ${parseFloat(this.state.etherPrice/10**9).toFixed(2)}{" "}
+                  </text>
+                  {/* Strike Price*/}
+                  <text x="35" y="60" fontWeight="bold" fill="brown">
+                    Strike Price:
+                  </text>
+                  <text x="175" y="60" fontWeight="normal" fill="brown">
+                    ${parseFloat(this.state.percent*this.state.etherPrice/10**9/100).toFixed(2)}{" "}
+                  </text>
+                  {/* Stable Coin Invested (conversion)*/}
+                  <text x="35" y="75" fontWeight="bold" fill="brown">
+                    USDC Invested:
+                  </text>
+                  <text x="175" y="75" fontWeight="normal" fill="brown">
+                    ${parseFloat(this.state.ether*this.state.etherPrice/10**9).toFixed(2)}{" "}
+                  </text>
+                  {/* Energy*/}
+                  <text x="35" y="90" fontWeight="bold" fill="brown">
+                    Energy:
+                  </text>
+                  <text x="175" y="90" fontWeight="normal" fill="brown">
+                    {" "}
+                    {_energy}
+                  </text>
+                  {/* ##### Top Middle*/}
+                  {/* Token Id*/}
+                  <text
+                    x="50%"
+                    y="23"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                    fontSize="1.1em"
+                    fill="white"
+                  >
+                    {" "}
+                    {_tokenId}{" "}
+                  </text>
+                  {/* //// Bottom Middle/ */}
+                  <text
+                    x="50%"
+                    y="338"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                    fontSize="1.1em"
+                    fill="white"
+                  >
+                    {" "}
+                    ETHEREUM{" "}
+                  </text>
+                  {/* Main image*/}
+                  {/* Error Message*/}
+                  Unsupported
+                </svg>
               </div>
-           </div>
-          {/* PREVIEW OF NFT */}
-          <div className="NFT-image-container">
-            <svg xmlns="http://www.w3.org/2000/svg" width="350" height="350">
-              <rect width="350" height="350" className="NFT-box" />{" "}
-              {/* style='fill:rgb(255,255,255);stroke-width:3;stroke:rgb(0,0,0)'*/}
-              <rect className="bg-rectangle" />
-              <rect className="inner-rectangle" />
-              <rect className="extra-rectangle" />
-              <circle className="outer-plate-line" />
-              <circle className="inner-plate-line" />
-              {/* Data*/}
-              {/* Current Eth Price*/}
-              <text x="35" y="45" fontWeight="bold" fill="brown">
-                Current Price:
-              </text>
-              <text x="175" y="45" fontWeight="normal" fill="brown">
-                ${parseFloat(this.state.etherPrice/10**9).toFixed(2)}{" "}
-              </text>
-              {/* Strike Price*/}
-              <text x="35" y="60" fontWeight="bold" fill="brown">
-                Strike Price:
-              </text>
-              <text x="175" y="60" fontWeight="normal" fill="brown">
-                ${parseFloat(this.state.percent*this.state.etherPrice/10**9/100).toFixed(2)}{" "}
-              </text>
-              {/* Stable Coin Invested (conversion)*/}
-              <text x="35" y="75" fontWeight="bold" fill="brown">
-                USDC Invested:
-              </text>
-              <text x="175" y="75" fontWeight="normal" fill="brown">
-                ${parseFloat(this.state.ether*this.state.etherPrice/10**9).toFixed(2)}{" "}
-              </text>
-              {/* Energy*/}
-              <text x="35" y="90" fontWeight="bold" fill="brown">
-                Energy:
-              </text>
-              <text x="175" y="90" fontWeight="normal" fill="brown">
-                {" "}
-                {_energy}
-              </text>
-              {/* ##### Top Middle*/}
-              {/* Token Id*/}
-              <text
-                x="50%"
-                y="23"
-                textAnchor="middle"
-                fontWeight="bold"
-                fontSize="1.1em"
-                fill="white"
-              >
-                {" "}
-                {_tokenId}{" "}
-              </text>
-              {/* //// Bottom Middle/ */}
-              <text
-                x="50%"
-                y="338"
-                textAnchor="middle"
-                fontWeight="bold"
-                fontSize="1.1em"
-                fill="white"
-              >
-                {" "}
-                ETHEREUM{" "}
-              </text>
-              {/* Main image*/}
-              {/* Error Message*/}
-              Unsupported
-            </svg>
-          </div>
+              <div className="flex-row-centered">
+                  <div className="input-field-outer-container">
+                      <div className="input-field-inner-container">
+                          <input
+                            onChange={(event) => this.setState({ ether: event.target.value })}
+                            type="number"
+                            id="CoinAmount"
+                            name="CoinAmount"
+                            min="0.1"
+                            step="0.01"
+                            className ="input-field"
+                            placeholder="1"
+                          />
+                          <label className="input-field-label" for="CoinAmount">ETH</label>
+                       </div>
+                      <div className="input-field-inner-container">
+                          <input
+                            onChange={(event) => this.setState({ percent: event.target.value })}
+                            type="number"
+                            id="DipPercent"
+                            name="DipPercent"
+                            min="10"
+                            step="1"
+                            max="100"
+                            className ="input-field"
+                            placeholder="25"
 
-          <div className="button-group">
-            <div
-              className="btn btn-bordered-white"
-              onClick={() => this.mintNFT(this.state.ether, this.state.percent)}
-            >
-              <i className="icon-rocket mr-2" />
-              {this.state.data.btn_1}
-            </div>
+                          />
+                          <label className="input-field-label"  for="DipPercent">Percent Dip</label>
+                      </div>
+                   </div>
+
+               </div> {/* end input and buttow flex-row*/}
+
+                  <div className="">
+                    <div
+                      className="btn btn-bordered-white"
+                      onClick={() => this.mintNFT(this.state.ether, this.state.percent)}
+                    >
+                      <i className="icon-rocket mr-2" />
+                      {this.state.data.btn_1}
+                    </div>
+                  </div>
+
+          </div> {/* end of flex row containing input fields and preview */}
           </div>
         </div>
         {/* Shape */}

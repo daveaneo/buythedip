@@ -4,8 +4,9 @@ const initData = {
   pre_heading: "Tasty NFTs",
   heading: "Buy The Dip",
   content: "Refried Assets and DeFi Bean Company",
-  btn_1: "Mint an NFT",
-  btn_2: "Contact Us",
+  btn_1: "Mint",
+  btn_2: "Stake",
+  btn_3: "Whitepaper",
 };
 
 class Hero extends Component {
@@ -24,7 +25,7 @@ class Hero extends Component {
           <div className="row">
             <div className="col-12 col-md-6 col-lg-7">
               <span>{this.state.data.pre_heading}</span>
-              <h1 className="mt-4">{this.state.data.heading}</h1>
+              <h1 className="mt-4">{this.state.data.heading}</h1> <h3 style={{color:'red'}}>RINKEBY TESTNET ONLY</h3>
               <p>{this.state.data.content}</p>
               {/* Buttons */}
               <div className="button-group">
@@ -32,9 +33,13 @@ class Hero extends Component {
                   <i className="icon-rocket mr-2" />
                   {this.state.data.btn_1}
                 </a>
-                <a className="btn btn-bordered-white" href="#">
+                <a className="btn btn-bordered-white" href="#stake">
                   <i className="icon-note mr-2" />
                   {this.state.data.btn_2}
+                </a>
+                <a className="btn btn-bordered-white" href="#whitepaper">
+                  <i className="icon-note mr-2" />
+                  {this.state.data.btn_3}
                 </a>
               </div>
             </div>

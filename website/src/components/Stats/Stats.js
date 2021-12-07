@@ -83,7 +83,7 @@ class Stats extends Component {
     return (
       <section className="hero-section">
         <div className="container">
-          <ul> Stats
+          <ul> <h1>Stats</h1>
           <li> Total Loans: ${this.numberWithCommas(this.state.totalLoans)} </li>
           <li> Total NFTs:  {this.state.tokens}</li>
           <li> BTD Contract Address:  {buyTheDipAddress}</li>

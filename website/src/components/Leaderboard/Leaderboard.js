@@ -21,8 +21,8 @@ class Leaderboard extends Component {
     return (
       <section className="hero-section">
         <div className="container">
-
-        Leaderboard Coming Soon.
+        <h1>Leaderboard</h1>
+        Coming Soon.
 
         </div>
         {/* Shape */}

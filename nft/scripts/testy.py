@@ -35,35 +35,8 @@ NOTES -- Difficult to test staking rewards, as that takes time
 
 
 def main():
-    pass
-    # dev = accounts.add(config["wallets"]["from_key"])
-    #
-    # # deploy_and_create()
-    #
-    # print(f'BTD length: {len(BuyTheDipNFT)}')
-    #
-    # # Get the latest of the collectables
-    # btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    # total_tokens = btd.tokenCounter()
-    #
-    # print(f'You have deployed {len(BuyTheDipNFT)} Collectable(s).')
-    # print(f'NFTs in latest deployment: {total_tokens}')
-    #
-    # # reset_all_dip_levels(total_tokens)
-    # # print(f'Dip Levels:')
-    # # print_all_dip_levels(total_tokens)
-    #
-    # test_create_collectible()
-    #
-    # # perform_upkeep()
-    # # print(f'After upkeep:')
-    # # print_all_dip_levels(total_tokens)
-    #
-    # stake_token(1)
-    #
-    # # set_dip_levels(set(range(btd.tokenCounter())),1)
-    # # side_piece()
-    #
+    test_do_tests_in_order()
+
 
 def print_test(s):
     global test_counter
@@ -73,10 +46,12 @@ def print_test(s):
 
 def test_do_tests_in_order():
     deploy_and_create()
-    verify_packing()
-    contract_makes_money()
+    # verify_packing()
+    # contract_makes_money()
+    test_stake_token()
+    contract_and_staking_rewards()
     destroyAndRefund()
-    pass
+
 
 
 #@pytest.fixture
@@ -84,7 +59,6 @@ def deploy_and_create():
     dev = accounts.add(config["wallets"]["from_key"])
 
     global BTD_DEPLOYED
-
     if not BTD_DEPLOYED:
         print(f"\n##### Deploying new BuyTheDip contract, creating new collectibles. #####")
 
@@ -96,11 +70,8 @@ def deploy_and_create():
 
         print_test('BuyTheDip Deployed:')
         assert btd is not None
-
         BTD_DEPLOYED = True
-
         dip_staking = DipStaking.deploy(btd.address, {"from": dev}, publish_source=False)
-
     else:
         btd = BuyTheDipNFT[-1]
 
@@ -108,7 +79,6 @@ def deploy_and_create():
         t = btd.createCollectible(i * 15, {"from": dev, "amount": 10 ** 15})  # dictionary needed for payables?
         print_test('NFT Created:')
         assert t is not None
-
 
     # perform_upkeep()
 
@@ -123,18 +93,8 @@ def deploy_and_create():
         # assert btd.tokenIdToEnergy(0) > 0
 
 
-def create_single_collectible(percent, eth_amount):
-    dev = accounts.add(config["wallets"]["from_key"])
-    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    num_of_collectibles = btd.tokenCounter()
-    t = btd.createCollectible(percent, {"from": dev, "amount": eth_amount})  # dictionary needed for payables?)
-
-    assert t is not None
-    assert num_of_collectibles + 1 == btd.tokenCounter()
-
-    return num_of_collectibles # token id of new token
-
-def earn_interest_while_waiting_to_buy_dip(deploy_and_create):
+# difficult to test
+def earn_interest_while_waiting_to_buy_dip():
 # def perform_upkeep(deploy_and_create):
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
@@ -148,32 +108,42 @@ def earn_interest_while_waiting_to_buy_dip(deploy_and_create):
     assert final_balanace >= initial_balance # bad test. Need more time
 
 
+# todo-- complete this
 # def contract_and_staking_rewards(deploy_and_create):
 def contract_and_staking_rewards():
     _id = 0
+    print(f'#### contract_and_staking_rewards ####')
     print(f'Staking token {_id}')
 
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
     dip_staking = DipStaking[len(DipStaking) - 1]
+    # time.sleep(30)
+    _id = create_single_collectible(25, 10**15)  # generates profit, but not collected
+
 
     print(f'attempting to withdraw')
 
     bal_beg = dev.balance
-    btd.releaseProfits({"from": dev});
+    btd.releaseOwnerProfits({"from": dev});
     bal_end = dev.balance
 
-    assert bal_beg == bal_end
+    assert bal_beg < bal_end
+
+    #brainstorm --todo
+    # mint NFT
+    # buythedip
+    # early release
+    # interest on existing funds
 
     # Stake -- todo
-    time.sleep(30)
     # See that there are rewards
 
 
 #def test_contract_makes_money(deploy_and_create):
 def contract_makes_money():
 
-    print(f'\n##### Contract makes money Tests \n#####')
+    print(f'\n##### Contract makes money Tests #####')
     dev = accounts.add(config["wallets"]["from_key"])
     initial_balance = dev.balance();
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
@@ -182,6 +152,9 @@ def contract_makes_money():
     # minting an NFT
     _id = create_single_collectible(0, 10**15)
     end_profit = btd.contractStablecoinProfit()
+
+    # print(f'just minted id: {_id}. \nPrinting dip levels:\n---\n')
+    # print_all_dip_levels()
 
     print_test("Contract makes money when a NFt is minted.")
     assert start_profit < end_profit
@@ -239,17 +212,17 @@ def destroyAndRefund():
     initial_balance = dev.balance();
     t = btd.destroyAndRefund(_id, {"from": dev})  # dictionary needed for payables?)
 
-    print_test("destroyAndRefund did not fail") # may not be due to gas
+    print_test("destroyAndRefund call did not fail") # may not be due to gas
     assert t is not None
 
     print_test("token burnt") # may not be due to gas
-    assert "0x000000000000000000000000000000000000dEaD" == btd.ownerOf(_id)
+    assert "0x000000000000000000000000000000000000dEaD" == btd.ownerOf(_id), f'btd.ownerOf(_id): {btd.ownerOf(_id)}'
 
     print_test("Balance should be equal or greater after destroyAndRefund") # may not be due to gas
     assert dev.balance() >= initial_balance
 
 
-def ___test_stake_token(deploy_and_create):
+def test_stake_token():
     # def test_stake_token():
     _id = 0
     print(f'\n##### Staking Tests #####')
@@ -261,36 +234,33 @@ def ___test_stake_token(deploy_and_create):
     _id = create_single_collectible(0, 10**15)
     perform_upkeep()
 
-
     if btd.ownerOf(_id) != dev.address:
         # btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
         pass
+        print('Error. Not owner.')
 
     else:
         btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
 
-    time.sleep(5)
+    time.sleep(15)
     energy = dip_staking.getTotalStakingEnergy()
 
-    print_test('Energy created in staking:')
+    # todo -- see why this is getting 0xfe not defined
+    print_test('Sending NFT to DipStaking gives it energy:')
+    print(f'energy: {energy}')
     assert energy > 0
 
     # dip_staking.call({"value": 10000, "from": dev})
+    # send 100 (gwei?)
     dev.transfer(dip_staking.address, 100)
+
+    #  get rewards in native token
     dip_staking.withdrawRewards(_id, {"from": dev})
     dip_staking.unstake(_id, {"from": dev})
 
     print_test('Unstake removes balance:')
 
     assert dip_staking.balance() == 0
-
-
-def print_all_dip_levels(total_tokens):
-    dev = accounts.add(config["wallets"]["from_key"])
-    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    # total_tokens = btd.tokenCounter()
-    for i in range(total_tokens):
-        print(f'{i}) dipLevel:  {btd.tokenIdToDipLevel(i)}')
 
 
 def verify_packing():
@@ -301,11 +271,32 @@ def verify_packing():
     print_test("packing works")
     assert res == True
 
-def set_dip_levels(ids, value):
+
+
+
+
+
+### HELPERS
+
+def create_single_collectible(percent, eth_amount):
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    for i in ids:
-        btd.setDipLevel(i, value, {"from": dev})
+    num_of_collectibles = btd.tokenCounter()
+    t = btd.createCollectible(percent, {"from": dev, "amount": eth_amount})  # dictionary needed for payables?)
+
+    assert t is not None
+    assert num_of_collectibles + 1 == btd.tokenCounter()
+
+    return num_of_collectibles # token id of new token
+
+
+def perform_upkeep():
+    dev = accounts.add(config["wallets"]["from_key"])
+    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    print(f'Performing Upkeep...')
+    tx = btd.performUpkeepTest({"from": dev});
+    print(f'events: {tx.events}')
+    print(f'tx: {tx}')
 
 
 def reset_all_dip_levels(total_tokens):
@@ -318,11 +309,18 @@ def reset_all_dip_levels(total_tokens):
         print(f'resetting {i}... of {total_tokens}')
 
 
-def perform_upkeep():
+def set_dip_levels(ids, value):
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    print(f'Performing Upkeep...')
-    tx = btd.performUpkeepTest({"from": dev});
-    print(f'events: {tx.events}')
-    print(f'tx: {tx}')
+    for i in ids:
+        btd.setDipLevel(i, value, {"from": dev})
 
+
+def print_all_dip_levels():
+    # currently broken after refactoring BTD
+    dev = accounts.add(config["wallets"]["from_key"])
+    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    total_tokens = btd.tokenCounter()
+    for i in range(total_tokens):
+#        print(f'{i}) dipLevel:  {btd.tokenIdToDipLevel(i)}')
+        pass

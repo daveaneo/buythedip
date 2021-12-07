@@ -1,5 +1,6 @@
 pragma solidity ^0.6.12;
 //pragma solidity >= 0.4.22 <0.9.0;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
@@ -15,17 +16,6 @@ import "interfaces/IUniswapV2Factory.sol";
 import "interfaces/IERC20.sol";
 
 
-// Objectives:
-// X //    Mint a token that will purchase dip when BNB goes down to some value
-// X //    Look up best way to sort? on blockchain--algorithm efficiency
-// X //    Purchase stablecoin
-//    Loan stablecoin
-//    Redeem stablecoin
-// X //    Purchase BNB
-// X //    Upgrade NFT to new graphic
-//    Stake NFT to earn time-limited rewards
-
-
 library UniswapHelpers {
 
     function _swapExactTokensForETH(uint256 tokenAmount, address tokenContractAddress, address to, IUniswapV2Router02 _router, uint256 _swapSlippage) internal  returns (uint256, uint256){
@@ -34,20 +24,6 @@ library UniswapHelpers {
         path[0] = tokenContractAddress; //address(0x3B00Ef435fA4FcFF5C209a37d1f3dcff37c705aD); // USDT Rinkeby
         path[1] = _router.WETH();
 
-//        uint256 minTokensToReceive; // Local scope for many variables
-//        {
-//            IUniswapV2Factory _UFactory = IUniswapV2Factory(_router.factory());
-//            address _tokenPair = _UFactory.getPair(_router.WETH(), tokenContractAddress);
-//            (uint256 Res0, uint256 Res1,) = IUniswapV2Pair(_tokenPair).getReserves();
-//            require(Res1!=0, "No tokens in Res1");
-//            uint256 ETHPricePerBabyDoge =  (10**18)*Res1/Res0;
-//            require(ETHPricePerBabyDoge!=0, "ETHPricePerBabyDoge equals zero."); // why? Not dividing by zero anyore
-//            minTokensToReceive = tokenAmount * (10000 - _swapSlippage);
-//            minTokensToReceive = minTokensToReceive * ETHPricePerBabyDoge;
-//            minTokensToReceive = minTokensToReceive / 10**18  / 10000; // ETH TO RECEIVE
-//        }
-
-//         for Pancakeswap
         uint256 minTokensToReceive; // Local scope for many variables
         {
             uint256 receivable = _router.getAmountsOut(tokenAmount, path)[0];
@@ -84,25 +60,8 @@ library UniswapHelpers {
         path[0] = _router.WETH();
         path[1] = tokenContractAddress; //address(0x3B00Ef435fA4FcFF5C209a37d1f3dcff37c705aD); // USDT Rinkeby
 
-        // For Ethereum
-//        uint256 minTokensToReceive;
-//        {
-//            IUniswapV2Factory _UFactory = IUniswapV2Factory(_router.factory());
-//            address _tokenPair = _UFactory.getPair(_router.WETH(), tokenContractAddress);
-//            (uint256 Res0, uint256 Res1,) = IUniswapV2Pair(_tokenPair).getReserves(); // baby doge is Res0
-//            require(Res0 !=0, "No tokens in Res0");
-//            uint256 tokensPerETH =  ((10**18)*Res0)/Res1; // For 10**18
-//            require(tokensPerETH!=0, "tokensPerETH equals zero.");
-//            minTokensToReceive = ethAmount * (10000 - _swapSlippage) * tokensPerETH;
-//            minTokensToReceive = minTokensToReceive / (10**18) / 10000;
-//            minTokensToReceive = minTokensToReceive / (10**18) / 10000;
-//        }
-
-        // for Pancakeswap
         uint256 minTokensToReceive; // Local scope for many variables
         {
-//            IUniswapV2Factory _UFactory = IUniswapV2Factory(_router.factory());
-//            address _tokenPair = _UFactory.getPair(_router.WETH(), tokenContractAddress);
             uint256 receivable = _router.getAmountsOut(ethAmount, path)[0];
             minTokensToReceive = receivable * (10000 - _swapSlippage)/10000;
         }
@@ -184,6 +143,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         return (_deposit, _blockDepositAmount, _blockDeposited);
     }
 
+    // todo -- change pack/unpack to internal
     /** @dev Packs 3 uints into 1 uint to save space (128, 64, 64) -> 256
         @param _deposit -- total deposit, uint128
         @param _blockDepositAmount -- amount deposited in this block, uint64
@@ -197,10 +157,9 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     }
 
 
-    receive() external payable{
-      // when receiving ETH, split it equally among all stakers and founders/owners
-      // create clever way to not spend a lot of gas
 
+    receive() external payable{
+     // todo - // when receiving ETH, split it equally among all stakers and founders/owners
     }
 
     /** @dev Adds up all active energy contributed by stakers
@@ -210,14 +169,15 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         uint256 _total = 0;
         for(uint256 i = 0; i < activeNFTArray.length; i++){ // is activeNFTArray.length dynamic here?
             uint256 _id = activeNFTArray[i];
-            if(BTD.tokenIdToEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
+            if(BTD.getEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
                 _total += block.timestamp - stakeStartTimestamp[_id];
             }
             else {
-                _total += BTD.tokenIdToEnergy(_id);
+                _total += BTD.getEnergy(_id);
             }
         }
-        return _total == 0 ? 1: _total;
+//        return _total == 0 ? 1: _total;
+        return _total;
     }
 
     /** @dev Remove NFT from staking pool
@@ -246,6 +206,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         delete moneys[_id];
     }
 
+    //todo -- something here is going beyond boundary
     /** @dev Withdraw native coin, which has been earned as a reward.
         @param _id -- id of NFT. Must be previous owner to call
       */
@@ -255,7 +216,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         reservedFundsForStakers -= moneys[_id];
         uint256 _reward = moneys[_id];
         moneys[_id] = 0;
-        (bool success, ) = address(previousOwner[_id]).call{value : _reward}("Releasing rewards to NFT owner.");
+        (bool success, ) = address(previousOwner[_id]).call{value : _reward}("Releasing rewards to NFT owner."); // in native token
         require(success, "Transfer failed.");
     }
 
@@ -275,30 +236,38 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         return (address(this).balance - reservedFundsForStakers - reservedFundsForOwners);
     }
 
-    // todo--combine with flushInactive
     /** @dev moves token rewards from the pool and puts it in a separate account for one token. Decreases energy.
-        @param _id -- token id
+        @param _tokenId -- token id
       */
-    function flushTokenRewardsOf(uint256 _id) internal {
-        uint256 _rewards = getAvailableStakingFunds() * getActiveEnergyOfToken(_id) / getTotalStakingEnergy();
-        moneys[_id] += _rewards;
+    function flushTokenRewardsOf(uint256 _tokenId) internal returns(bool){
+        uint256 _totalStakingEnergy = getTotalStakingEnergy();
+        uint256 _rewards = _totalStakingEnergy==0 ? 0: getAvailableStakingFunds() * getActiveEnergyOfToken(_tokenId) / _totalStakingEnergy;
+        moneys[_tokenId] += _rewards;
         reservedFundsForStakers += _rewards;
-
+        bool popped = false;
+        uint256 activeNFTArrayIndex=0;
         // if out of energy
-        if(BTD.tokenIdToEnergy(activeNFTArray[_id]) + stakeStartTimestamp[_id] < block.timestamp){
-            BTD.setEnergy(_id, 0);
-            activeNFTArray[_id] = activeNFTArray[activeNFTArray.length - 1];
-            activeNFTArray.pop();
+        if(BTD.getEnergy(_tokenId) + stakeStartTimestamp[_tokenId] < block.timestamp){
+            BTD.setEnergy(_tokenId, 0);
+            for(uint256 i=0; i<activeNFTArray.length;i++){
+                if(activeNFTArray[i]==_tokenId){
+                    activeNFTArray[i] = activeNFTArray[activeNFTArray.length - 1];
+                    activeNFTArray.pop(); // todo -- will cause conflict with other function. need to rememedy
+                    popped = true;
+                    break;
+                }
+            }
         }
         else {
-            stakeStartTimestamp[_id] = block.timestamp;
-            BTD.setEnergy(_id, BTD.tokenIdToEnergy(_id) - getActiveEnergyOfToken(_id));
+            stakeStartTimestamp[_tokenId] = block.timestamp;
+            BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
         }
-//        BTD.setEnergy(_id, BTD.tokenIdToEnergy(_id) - getActiveEnergyOfToken(_id));
-//        stakeStartTimestamp[_id] = block.timestamp;
-        // todo--confirm functionality. Should this  also move _id to inactive stakers? What calls this?
+//        BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
+//        stakeStartTimestamp[_tokenId] = block.timestamp;
+        // todo--confirm functionality. Should this  also move _tokenId to inactive stakers? What calls this?
 
 
+        return popped;
     }
 
     /** @dev Get energy used since timestamp for specific NFT
@@ -306,11 +275,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
       */
     function getActiveEnergyOfToken(uint256 _id) public view returns(uint256){
             uint256 _energy;
-            if(BTD.tokenIdToEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
+            if(BTD.getEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
                 _energy = block.timestamp - stakeStartTimestamp[_id];
             }
             else {
-                _energy = BTD.tokenIdToEnergy(_id);
+                _energy = BTD.getEnergy(_id);
             }
             return _energy;
     }
@@ -318,19 +287,24 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     /** @dev Flush all staked NFTs that have used up their energy
       */
     function flushInactive() internal {
-        uint256 _id;
-        uint256 _rewards;
-        uint256 _totalEnergy = getTotalStakingEnergy(); // todo-- do we need to recalculate this in the for loop?
-        for(uint256 i = 0; i < activeNFTArray.length; i++){ // is activeNFTArray.length dynamic here?
-            if(BTD.tokenIdToEnergy(activeNFTArray[i]) + stakeStartTimestamp[i] < block.timestamp){
-//                _id = activeNFTArray[i];
-//                _rewards = getAvailableStakingFunds() * getActiveEnergyOfToken(_id) / _totalEnergy;
-//                moneys[_id] += _rewards;
-//                BTD.setEnergy(_id, 0);
-//                reservedFundsForStakers += _rewards;
-//                activeNFTArray[i] = activeNFTArray[activeNFTArray.length - 1];
-//                activeNFTArray.pop();
-                flushTokenRewardsOf(activeNFTArray[i]);
+//        uint256 _id;
+//        uint256 _rewards;
+//        uint256 _totalEnergy = getTotalStakingEnergy(); // todo-- do we need to recalculate this in the for loop?
+        bool popped = false;
+        uint256 index;
+
+        for(uint256 i = 1; i < activeNFTArray.length + 1; i++){ // is activeNFTArray.length dynamic here?
+            if(BTD.getEnergy(activeNFTArray[i]) + stakeStartTimestamp[i] < block.timestamp){
+                index = i - 1;
+                // Here, we shift the index because of [] popping
+                // Being sure not to go beyond the array or miss
+//                if(popped) { i-=1; } //
+//                else if(i >= activeNFTArray.length ) { break; } // strange way to avoid two arrays
+
+                // flush token. If popped, adjust array back one
+                if(flushTokenRewardsOf(activeNFTArray[index])){
+                      i -= 1; // start with 1 to avoid underflow
+                }
             }
         }
     }
@@ -377,8 +351,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
             // One timestamp for each NFT, mapping(uint256=>uint256), could be less if we wanted to include cash holding
             // contract.balance - holdings (various) is used to cash out
             // Each receive() updates which active NFTs and cashes out those that are inactive
-          require(BTD.tokenIdToIsWaitingToBuy(_tokenId)==false,"Can't stake while waiting to buy dip.");
-          require(BTD.tokenIdToEnergy(_tokenId) > 0, "Not enough energy.");
+          require(msg.sender==address(BTD), string(abi.encodePacked(msg.sender)));
+//          require(BTD.tokenIdToIsWaitingToBuy(_tokenId)==false,"Can't stake while waiting to buy dip.");
+//          require(BTD.getEnergy(_tokenId) > 0, "Not enough energy.");
+          require(BTD.qualifiesForStaking(_tokenId)==true,"Not qualified for staking");
+
           stakeStartTimestamp[_tokenId] = block.timestamp;
           previousOwner[_tokenId] = _from; //tx.origin; //msg.sender;
           activeNFTArray.push(_tokenId);
@@ -392,17 +369,31 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
 contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 public tokenCounter;
 
-    // Better to use a struct?
-    mapping(uint256 => uint8) public tokenIdToDipLevel; // Number of times NFT has bought the dip
-    mapping(uint256 => uint256) public tokenIdToDipValue; // Strike Price
-    mapping(uint256 => uint256) public tokenIdToDipPercent; // Percent Drop
-    mapping(uint256 => uint256) public tokenIdToStableCoin; // Amount of USDT purchased
-    mapping(uint256 => bool) public tokenIdToIsWaitingToBuy; // True/False if waiting to buy
-    mapping(uint256 => uint256) public tokenIdToEnergy; // True/False if waiting to buy
+//    mapping(uint256 => uint8) public tokenIdToDipLevel; // Number of times NFT has bought the dip
+//    mapping(uint256 => uint256) public tokenIdToDipValue; // Strike Price
+//    mapping(uint256 => uint256) public tokenIdToDipPercent; // Percent Drop
+//    mapping(uint256 => uint256) public tokenIdToStableCoin; // Amount of USDT purchased
+//    mapping(uint256 => bool) public tokenIdToIsWaitingToBuy; // True/False if waiting to buy
+//    mapping(uint256 => uint256) public tokenIdToEnergy; // True/False if waiting to buy
+
+    mapping(uint256 => uint256) public tokenIdToPackedData; // compressed data for NFT
+
+    // todo run general test without "test"
+    //todo pack these differenly? (96, 96, 32, 8, 8, 8)
+    struct Data {
+        uint256 dipValue;
+        uint256 stableCoinAmount;
+        uint256 energy;
+        uint256 dipPercent;
+        uint256 dipLevel;
+        uint256 isWaitingToBuy;
+    }
+
+    enum DataProperties {DipValue, StableCoinAmount, Energy, DipPercent, DipLevel, IsWaitingToBuy}
 
 //    uint256 internal fee;
-    uint256 public highestDip = ~uint256(0); //2**127 - 1; //todo: ~0
-    uint256 swapSlippage = 10000; // full slippage
+    uint256 public highestDip = 0; //2**127 - 1; //todo: ~0
+    uint256 public swapSlippage = 10000; // full slippage
     uint256 public totalStableCoin = 0;
 
     uint256 private immutable interval = 60;
@@ -414,7 +405,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 private STABLECOINDUSTTHRESHOLD = 10**6/10; //10 cents
     uint256 private PROFITRELEASETHRESHOLD = 10**16;
     address public profitReceiver;
-    uint256 private contractStablecoinProfit;
+    uint256 public contractStablecoinProfit;
 
     ///////////////////////////////////////////
     ///////     CONFIG INFORMATION     ////////
@@ -464,12 +455,23 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     address public addy;
 
     event CoinsReleasedToOwner(
-        uint256 amount,
+        uint256 amountETH,
+        uint256 valueInUSD,
         uint256 date
     );
 
 
-event Received(address sender, uint amount);
+    event CollectibleCreated(
+        uint256 indexed _id,
+        uint256 data,
+        uint256 date
+    );
+
+
+    event Received(
+        address sender,
+        uint amount
+    );
 
     modifier onlyKeeper {
        require(true);
@@ -477,72 +479,161 @@ event Received(address sender, uint amount);
       _;
    }
 
-//    constructor(address _VRFCoordinator, address _LinkToken, bytes32 _keyhash)
+    /** @dev Packs 6 uints from data structure into 1 uint to save space (96, 96, 32, 8, 8, 8) -> 256
+        @param _myData -- data structure holding attributes of NFT
+    */
+    function packDataStructure(Data memory _myData) public pure returns (uint256){
+        return packData(_myData.dipValue, _myData.stableCoinAmount, _myData.energy, _myData.dipPercent, _myData.dipLevel, _myData.isWaitingToBuy);
+    }
+
+    // OLDER--Packs 6 uints into 1 uint to save space (90, 90, 32, 8, 3, 1) -> 256
+    /** @dev Packs 6 uints into 1 uint to save space (96, 96, 32, 8, 8, 8) -> 256
+        @param _dipValue -- strike price, uint96
+        @param _stableCoinAmount -- amount of stablecoin locked in NFT, uint96
+        @param _energy -- energy (time permitted to stake), uint32
+        @param _dipPercent -- percent drop to set strike price, uint8
+        @param _dipLevel -- level (number of times dip has been bought), "uint8"
+        @param _isWaitingToBuy -- true if waiting to buy dip, false if dip bought and not redipped, uint8
+      */
+    function packData(uint256 _dipValue, uint256 _stableCoinAmount, uint256 _energy, uint256 _dipPercent, uint256 _dipLevel, uint256 _isWaitingToBuy) public pure returns (uint256){
+        uint256 count = 0;
+        uint256 ret = _dipValue;
+        count += 96;
+
+        ret |= _stableCoinAmount << count;
+        count += 96;
+
+        ret |= _energy << count;
+        count += 32;
+
+        ret |= _dipPercent << count;
+        count += 8;
+
+        ret |= _dipLevel << count;
+        count += 8;
+
+        ret |= _isWaitingToBuy << count;
+        count += 8;
+
+        return ret;
+    }
+
+
+    /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
+        @param _id -- NFT id, which will pull the 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
+      */
+    function unpackData(uint256 _id) public view returns (Data memory){
+//        uint256 _myData = tokenIdToPackedData[_id];
+        return _unpackData(tokenIdToPackedData[_id]);
+    }
+
+
+    /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
+        @param _myData -- 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
+      */
+    function _unpackData(uint256 _myData) public pure returns (Data memory){
+
+        uint256 _dipValue = uint256(uint96(_myData));
+        uint256 _stableCoinAmount = uint256(uint96(_myData >> 96));
+        uint256 _energy = uint256(uint32(_myData >> 192));
+
+        uint256 _dipPercent = uint256(uint8(_myData >> 224));
+        uint256 _dipLevel = uint256(uint8(_myData >> 232));
+        uint256 _isWaitingToBuy = uint256(uint8(_myData >> 240));
+
+        return Data(_dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, _isWaitingToBuy);
+    }
+
+    function verifyPacking() public view returns(bool){
+        uint256 compressed = packData(1,2,3,4,5,6);
+        Data memory _myData = _unpackData(compressed);
+//        if(_myData.isWaitingToBuy==1 && _myData.dipLevel==2 && _myData.dipPercent==3 && _myData.energy==4 && _myData.stableCoinAmount==5 && _myData.f==6){
+//            return true;
+//        }
+        if(
+            _myData.dipValue == 1 &&
+            _myData.stableCoinAmount == 2 &&
+            _myData.energy == 3 &&
+            _myData.dipPercent == 4 &&
+            _myData.dipLevel == 5 &&
+            _myData.isWaitingToBuy == 6
+        ) { return true;}
+
+
+        else {return false;}
+    }
+
     constructor()
     public
-//    VRFConsumerBase(_VRFCoordinator, _LinkToken)
     ERC721("WeBuyTheDip", "DIP")
     {
         tokenCounter = 0;
-//        keyHash = _keyhash;
-//        fee = 0.1 * 10 ** 18;
-
-        //todo: remove, clean up
-//        priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419) // ETH/USD, Ethereum mainnet
-//        priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e); // ETH/USD, Rinkeby (Ethereum testnet)
-//        priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331); // ETH/USD, Kovan (Ethereum testnet
-//        priceFeed = AggregatorV3Interface(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526); // BNB/USD, bsc testnet
-//        priceFeed = AggregatorV3Interface(0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE); // BNB/USD, bsc mainnet
         profitReceiver = owner();
         lastTimeStamp = block.timestamp;
     }
 
+
     // todo: Create liquidity pool for USDC on pancakeswap BSC testnet
-    function createCollectible(uint32 percentDrop)
+    function createCollectible(uint256 percentDrop)
         public payable returns (bytes32){
-            require (msg.value + MINTFEE >= MINCOINDEPOSIT, "Not enough native coin.");
+            require (msg.value >= MINCOINDEPOSIT + MINTFEE, "Not enough native coin.");
             require(percentDrop < 100, "Percent X must conform to: 10 <= X < 100"); // todo: adjust 10% after testing
 
             updateAllBalances();
 
-            contractStablecoinProfit += MINTFEE; // STABLECOIN or not?
-            uint256 newItemId = tokenCounter;
-            tokenCounter = tokenCounter + 1;
-            _safeMint(msg.sender, newItemId);
+            _safeMint(msg.sender, tokenCounter);
 
-            tokenIdToDipLevel[newItemId] = 0;
-            tokenIdToDipValue[newItemId] = (100 - percentDrop) * getLatestPrice() / 100;
-            tokenIdToDipPercent[newItemId] = percentDrop;
 
-//            tokenIdToStableCoin[newItemId] = swapETHForTokens(newItemId, msg.value);
+//            tokenIdToDipLevel[tokenCounter] = 0;
+//            tokenIdToDipValue[tokenCounter] = (100 - percentDrop) * getLatestPrice() / 100;
+//            tokenIdToDipPercent[tokenCounter] = percentDrop;
+//            tokenIdToStableCoin[tokenCounter] = swapETHForTokens(tokenCounter, msg.value);
+
+            // MINTFEE and msg.value gets converted to stablecoin and sent to vault
             (, uint256 stablecoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
-            tokenIdToStableCoin[newItemId] = msg.value * stablecoinReceived/ (msg.value + MINTFEE);
-            contractStablecoinProfit += MINTFEE * stablecoinReceived/ (msg.value + MINTFEE);
+//            tokenIdToStableCoin[tokenCounter] = (msg.value - MINTFEE) * stablecoinReceived/ (msg.value);
 
-            require(tokenIdToStableCoin[newItemId] > 0, "Error! No tokens bought.");
 
-            // Lend Stablecoin // todo--was having issues
-            lendStableCoin(tokenIdToStableCoin[newItemId]);
+            Data memory _myData = Data( {
+                dipValue:(100 - percentDrop) * getLatestPrice() / 100,
+                stableCoinAmount:(msg.value - MINTFEE) * stablecoinReceived/ (msg.value),
+                energy:0,
+                dipPercent:percentDrop,
+                dipLevel:0,
+                isWaitingToBuy:1
+            });
+
+            tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
+
+
+            contractStablecoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
+
+//            require(tokenIdToStableCoin[tokenCounter] > 0, "Error! No tokens bought.");
+            require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
+
+            lendStableCoin(stablecoinReceived);
 
             // Update highestDip if needed
-            if(tokenIdToDipValue[newItemId] > highestDip){
-                highestDip = tokenIdToDipValue[newItemId];
+            if(_myData.dipValue > highestDip){
+                highestDip = _myData.dipValue;
             }
 
-            totalStableCoin += stablecoinReceived; //tokenIdToStableCoin[newItemId];
-            tokenIdToIsWaitingToBuy[newItemId] = true;
+            totalStableCoin += stablecoinReceived; //tokenIdToStableCoin[tokenCounter];
+//            tokenIdToIsWaitingToBuy[tokenCounter] = true;
+            _setTokenURI(tokenCounter, tokenURI(tokenCounter));
 
+//            tokenIdToPackedData[tokenCounter] = packData(
+//                (100 - percentDrop) * getLatestPrice() / 100,
+//                (msg.value - MINTFEE) * stablecoinReceived/ (msg.value),
+//                 0,
+//                 percentDrop,
+//                0,
+//                0
+//            );
 
-            _setTokenURI(newItemId, tokenURI(newItemId));
+            emit CollectibleCreated(tokenCounter, tokenIdToPackedData[tokenCounter], block.timestamp);
 
-            if(newItemId==2) { // temp todo: remove
-//                IERC20(StableCoinAddress).approve(address(router), tokenIdToStableCoin[newItemId]);
-////                UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[newItemId], StableCoinAddress, address(this), router, swapSlippage);
-//                (ETHSENT, USDTRECEIVED) = UniswapHelpers._swapExactTokensForETH(tokenIdToStableCoin[newItemId], StableCoinAddress, ownerOf(newItemId),  router, swapSlippage);
-                performUpkeepTest();
-            }
-
-//             emit requestedCollectible(newItemId);
+            tokenCounter = tokenCounter + 1;
     }
 
     // todo: combine shared features from createCollectible
@@ -550,28 +641,75 @@ event Received(address sender, uint amount);
       */
     function redip(uint256 _tokenId) public payable returns (bytes32) {
         // Constrain deposit to range based on previous deposits? Or always absolute minimum?
-        require (msg.value >= MINCOINDEPOSIT, "Not Enough BNB--or whatever");
-        require(tokenIdToIsWaitingToBuy[_tokenId] == false, "already in process of buying dip.");
+        Data memory _myData = unpackData(_tokenId);
 
+        require (msg.value >= MINCOINDEPOSIT, "Not Enough BNB--or whatever");
+        require(_myData.isWaitingToBuy == 0, "already in process of buying dip.");
+
+        // update balances to keep lent funds fair
+        // no need to refresh _myData, as we are resetting StableCoinAmount
         updateAllBalances();
 
-        tokenIdToDipValue[_tokenId] = (100 - tokenIdToDipPercent[_tokenId]) * getLatestPrice() / 100;
+        _myData.dipValue = (100 - _myData.dipPercent) * getLatestPrice() / 100;
         _setTokenURI(_tokenId, tokenURI(_tokenId));
 
-        (, tokenIdToStableCoin[_tokenId]) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
-        require(tokenIdToStableCoin[_tokenId] > 0, "Error! No tokens bought.");
+        (, uint256 stablecoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
+        _myData.stableCoinAmount = (msg.value - MINTFEE) * stablecoinReceived/ (msg.value);
+        contractStablecoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
 
-        lendStableCoin(tokenIdToStableCoin[_tokenId]);
+        require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
 
-        totalStableCoin += tokenIdToStableCoin[_tokenId];
-        tokenIdToIsWaitingToBuy[_tokenId] = true;
+        lendStableCoin(stablecoinReceived);
+        totalStableCoin += stablecoinReceived;
 
-        if(tokenIdToDipValue[_tokenId] > highestDip){
-            highestDip = tokenIdToDipValue[_tokenId];
+        _myData.isWaitingToBuy = 1;
+
+        if(_myData.dipValue > highestDip){
+            highestDip = _myData.dipValue;
         }
 
+        tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
         // Emit LimitOrderCreated
     }
+
+
+    function qualifiesForStaking(uint256 _tokenId) external view returns(bool) {
+        Data memory _myData = unpackData(_tokenId);
+        return _myData.isWaitingToBuy==0 && _myData.energy > 0;
+    }
+
+
+    function getEnergy(uint256 _tokenId) external view returns(uint256) {
+        Data memory _myData = unpackData(_tokenId);
+        return _myData.energy;
+    }
+
+    function getProperty(uint256 _tokenId, uint256 property) external view returns(uint256) {
+        Data memory _myData = unpackData(_tokenId);
+        require(property<6);
+//        enum DataProperties {DipValue, StableCoinAmount, Energy, DipPercent, DipLevel, IsWaitingToBuy};
+        uint256 value = 0;
+        if(property==0){
+            value = _myData.dipValue;
+        }
+        else if(property==1){
+            value = _myData.stableCoinAmount;
+        }
+        else if(property==2){
+            value = _myData.energy;
+        }
+        else if(property==3){
+            value = _myData.dipPercent;
+        }
+        else if(property==4){
+            value = _myData.dipLevel;
+        }
+        else if(property==5){
+            value = _myData.isWaitingToBuy;
+        }
+        return value;
+    }
+
 
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
         require(
@@ -593,15 +731,20 @@ event Received(address sender, uint amount);
         uint256 _addedTokens;
         uint256 _newTotal = totalStableCoin;
         uint256 _newIndividialBalance;
+        Data memory _myData;
+
         for(uint256 i = 0; i < tokenCounter;i++){
-            if(tokenIdToIsWaitingToBuy[i]==true){
+            _myData = unpackData(i);
+            if(_myData.isWaitingToBuy==1){
                 _newIndividialBalance = getStableCoinBalanceGivenId(i);
+
                 // todo -- will thise ever be negative? If so, ramifications?
                 // todo -- Have threshold to ignore dust.
-                _addedTokens = _newIndividialBalance > tokenIdToStableCoin[i] ? _newIndividialBalance - tokenIdToStableCoin[i] : 0;
+                _addedTokens = _newIndividialBalance > _myData.stableCoinAmount ? _newIndividialBalance - _myData.stableCoinAmount : 0;
                 if(_addedTokens > STABLECOINDUSTTHRESHOLD ){
-                    tokenIdToStableCoin[i] = _newIndividialBalance;
-                    _newTotal += _addedTokens;
+                    _myData.stableCoinAmount = _newIndividialBalance;
+                    _newTotal += _addedTokens; // todo --this seems a little strange
+                    tokenIdToPackedData[i] = packDataStructure(_myData);
                 }
             }
         }
@@ -613,17 +756,22 @@ event Received(address sender, uint amount);
     // protect existing accounts from sharing their rewards. This will be expensive!
     function destroyAndRefund(uint256 _tokenId) public {
         require(msg.sender == ownerOf(_tokenId), "Must be token owner.");
-        if (tokenIdToDipValue[_tokenId] <= getLatestPrice()){
+        Data memory _myData = unpackData(_tokenId);
+
+        if (_myData.dipValue <= getLatestPrice()){
             buyTheDip(_tokenId);
         }
         // buy with penalty
         else {
             // get stablecoin amount after penalty
             uint256 _withdrawal = retrieveLentStablecoins(_tokenId, EARLYWITHDRAWALFEEPERCENT);
-
-            IERC20(StableCoinAddress).approve(address(router), _withdrawal);
-            (uint256 ETHSent, uint256 USDTReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
+            if(_withdrawal > 0) {
+                IERC20(StableCoinAddress).approve(address(router), _withdrawal);
+                (uint256 ETHSent, uint256 USDTReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
+            }
         }
+//        approve(previousOwner[_id], _id); // todo -- necessary?
+        safeTransferFrom(msg.sender, address(0x000000000000000000000000000000000000dEaD), _tokenId, "burn NFT");
     }
 
     /** @dev Get all NFTs owned by owner.
@@ -650,29 +798,29 @@ event Received(address sender, uint amount);
                 count +=1;
             }
         }
-
         return owned;
     }
 
 
-    function buyTheDip(uint256 _tokenId) public onlyKeeper {
+    function buyTheDip(uint256 _tokenId) internal {
         // Confirm price
-        require(tokenIdToDipValue[_tokenId] <= getLatestPrice(), 'Price above dipLevel');
-        uint256 initialBalance = address(this).balance;
-        uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
+        Data memory _myData = unpackData(_tokenId);
+        require(_myData.dipValue <= getLatestPrice(), 'Price above dipLevel');
+        emit CoinsReleasedToOwner(0, 0, block.timestamp);
 
+        uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
         //todo: (ETHSent, USDTReceived) may be reversed
         IERC20(StableCoinAddress).approve(address(router), _withdrawal);
-        (uint256 ETHSent, uint256 USDTReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
+        (uint256 USDTReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
 
-        emit CoinsReleasedToOwner(USDTReceived, block.timestamp);
-        tokenIdToIsWaitingToBuy[_tokenId] = false;
-        if (tokenIdToDipLevel[_tokenId] < 7) { tokenIdToDipLevel[_tokenId] += 1; }
+        emit CoinsReleasedToOwner(ETHSent, USDTReceived, block.timestamp);
+        _myData.isWaitingToBuy = 0;
+        if (_myData.dipLevel < 7) { _myData.dipLevel += 1; }
 
-        tokenIdToEnergy[_tokenId] += tokenIdToStableCoin[_tokenId] * tokenIdToDipPercent[_tokenId] **2 / 10000 * tokenIdToDipLevel[_tokenId]; // todo -- choose energy formula
-
+        _myData.energy += _myData.stableCoinAmount * _myData.dipLevel  * (_myData.dipPercent **2) / 10000; // todo -- choose energy formula
         //temp todo -- remove after testing
-        tokenIdToEnergy[_tokenId] = 10000;
+        _myData.energy = 10000;
+        tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
     }
 
 
@@ -696,72 +844,86 @@ event Received(address sender, uint amount);
 
     function performUpkeep(bytes calldata /* performData */) external override {
         // todo -- update
-        performUpkeepTest(); // Putting this here to make the functionality more legit. It is still to develop fully
+//        performUpkeepTest(); // Putting this here to make the functionality more legit. It is still to develop fully
     }
 
-    function performUpkeepTest() public {
+    function performUpkeepTest() external {
         lastTimeStamp = block.timestamp;
 //        uint256 _highestDip = ~uint256(0); // todo: should this be the global highestDip
         uint256 latestPrice = getLatestPrice();
+        bool dipBought = false;
+        Data memory _myData;
 
         for(uint256 i=0;i<tokenCounter;i++){
-            if (tokenIdToIsWaitingToBuy[i] == true) {
-                if (tokenIdToDipValue[i] <= latestPrice ){
-                    buyTheDip(i);
-                }
-            }
-            else{
-                if ( tokenIdToDipValue[i] < highestDip) {
-                    highestDip = tokenIdToDipValue[i];
-                }
+            _myData = unpackData(i);
+            if (_myData.isWaitingToBuy == 1 && _myData.dipValue <= latestPrice) {
+                buyTheDip(i);
+                dipBought = true;
             }
         }
+
+        if(dipBought){
+            highestDip = getHighestDip();
+        }
+    }
+
+    function getHighestDip() internal returns(uint256){
+        uint256 _highestDip = 0;
+        Data memory _myData;
+        for(uint256 i=0;i<tokenCounter;i++){
+            _myData = unpackData(1);
+            if ( _myData.dipValue > highestDip) {
+                highestDip = _myData.dipValue;
+            }
+        }
+        return _highestDip;
+
     }
 
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
+        Data memory _myData = unpackData(_tokenId);
 
-        bool isWaitingToBuy = tokenIdToIsWaitingToBuy[_tokenId];
-        uint256 _dipLevel = tokenIdToDipLevel[_tokenId];
-        uint256 _strikePrice = uint256(tokenIdToDipValue[_tokenId]);
         uint256 _RADIUS = 78; // 80 - 2
         uint256 _latestPrice = uint256(getLatestPrice());
         uint256 _circleRadius;
-        if (!isWaitingToBuy) {
+        if (_myData.isWaitingToBuy==1) {
             _circleRadius = _RADIUS;
         }
         else {
-            _circleRadius = (_latestPrice > ((_strikePrice)*100/(100 - tokenIdToDipPercent[_tokenId]))) ? 0 : uint256(_RADIUS*(100 - 100*(_latestPrice - _strikePrice)/_latestPrice)/100); // temp, check for negative
+            _circleRadius = (_latestPrice > ((_myData.dipValue)*100/(100 - _myData.dipPercent))) ? 0 : uint256(_RADIUS*(100 - 100*(_latestPrice - _myData.dipValue)/_latestPrice)/100); // temp, check for negative
         }
-        uint256 _energy = tokenIdToEnergy[_tokenId];
-
+//        uint256 _myData.energy = tokenIdToEnergy[_tokenId];
         string memory mainImage;
+        mainImage = string(abi.encodePacked(
+            "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='175' cy='200' r='100' /%3E ",
+            "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='175' cy='200' r='80' /%3E",
+            "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E"
+         ));
 
         // Waiting to buy dip
-        // todo: update this, as both are doing the circle
-        if (isWaitingToBuy==true){
-            mainImage = string(abi.encodePacked(
-//                "%3Ccircle cx='175' cy='225' r='100' stroke='black' stroke-width='3' stroke-dasharray='15' fill='white' /%3E",
-//                "%3Ccircle cx='175' cy='225' r='", uint2str(uint256(_circleRadius)) ,"' stroke='' stroke-width='0' fill='red' /%3E"
-//                "%3Ccircle style='fill:#ffffff;stroke:#0045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='85' cy='85' r='100' /%3E",
-//                "%3Ccircle style='fill:#ffffff;stroke:#000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='85' cy='85' r='", uint2str(uint256(_circleRadius))  ,"' /%3E"
-
-                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='175' cy='200' r='100' /%3E ",
-                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='175' cy='200' r='80' /%3E",
-                "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E"
-
-            ));
-        }
+//        if (_myData.isWaitingToBuy==true){
+//            mainImage = string(abi.encodePacked(
+////                "%3Ccircle cx='175' cy='225' r='100' stroke='black' stroke-width='3' stroke-dasharray='15' fill='white' /%3E",
+////                "%3Ccircle cx='175' cy='225' r='", uint2str(uint256(_circleRadius)) ,"' stroke='' stroke-width='0' fill='red' /%3E"
+////                "%3Ccircle style='fill:#ffffff;stroke:#0045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='85' cy='85' r='100' /%3E",
+////                "%3Ccircle style='fill:#ffffff;stroke:#000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='85' cy='85' r='", uint2str(uint256(_circleRadius))  ,"' /%3E"
+//
+//                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='175' cy='200' r='100' /%3E ",
+//                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='175' cy='200' r='80' /%3E",
+//                "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E"
+//
+//            ));
+//        }
         // Dip Bought
-        else {
-            mainImage = string(abi.encodePacked(
+        if (_myData.isWaitingToBuy==1) {
+            mainImage = string(abi.encodePacked(mainImage,
               // Star -- Temporary
                 // DIP
-                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' cx='175' cy='200' r='100' /%3E ",
-                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' cx='175' cy='200' r='80' /%3E",
-                "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E",
-
-
+//                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' cx='175' cy='200' r='100' /%3E ",
+//                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' cx='175' cy='200' r='80' /%3E",
+//                "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E",
+//
                 // Star
 //              "%3Cpolygon points='200,110 140,298 290,178 110,178 260,298' ",
 //              "style='fill:gold;stroke:purple;stroke-width:5;fill-rule:nonzero;' /%3E ",
@@ -779,43 +941,31 @@ event Received(address sender, uint amount);
            "%3Crect style='opacity:0.33;fill:%23157700;fill-opacity:0.33;stroke:%230b9100;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal' width='350' height='350' x='0' y='0' /%3E",
            // Green Frame
            "%3Crect style = 'opacity:0.6;mix-blend-mode:normal;fill:none;stroke:%230b9100;stroke-width:15;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal' id = 'rect926' width = '315' height = '315' x = '17' y = '17' /%3E %3Crect style = 'opacity:0.33;mix-blend-mode:normal;fill:none;stroke:%230b9100;stroke-width:1.82496;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal' id = 'rect926-4' width = '288' height = '288' x = '31' y = '31' /%3E",
+
            // Data
                 // Current Eth Price
            "%3Ctext x='35' y='45' font-weight='bold' fill='brown'%3ECurrent Price:%3C/text%3E",
            "%3Ctext x='175' y='45' font-weight='normal' fill='brown'%3E$", uint2str(uint256(getLatestPrice()), 8, 2), "%3C/text%3E",
                 // Strike Price
            "%3Ctext x='35' y='60'  font-weight='bold' fill='brown'%3EStrike Price:%3C/text%3E",
-           "%3Ctext x='175' y='60' font-weight='normal' fill='brown'%3E$", uint2str(uint256(_strikePrice), 8, 2), "%3C/text%3E",
+           "%3Ctext x='175' y='60' font-weight='normal' fill='brown'%3E$", uint2str(uint256(_myData.dipValue), 8, 2), "%3C/text%3E",
                 // Stable Coin Invested (conversion)
            "%3Ctext x='35' y='75'  font-weight='bold' fill='brown'%3EUSDC Invested:%3C/text%3E"
             ));
 
-            // Stake-deepness error, so breaking this up
+            // Stack-deepness error, so breaking this up
             SVG = string(abi.encodePacked(SVG,
-//           "%3Ctext x='175' y='75' font-weight='normal' fill='brown'%3E$", uint2str(uint256(tokenIdToStableCoin[_tokenId]), 6, 2), " %3C/text%3E",
            "%3Ctext x='175' y='75' font-weight='normal' fill='brown'%3E$", uint2str(lendingBalance(_tokenId), 6, 2), " %3C/text%3E",
-
                 // Energy
            "%3Ctext x='35' y='90' font-weight='bold' fill='brown'%3EEnergy:%3C/text%3E",
-           "%3Ctext x='175' y='90' font-weight='normal' fill='brown'%3E", uint2str(_energy), "%3C/text%3E",
-
-//                //  TEMPORARY
-//           "%3Ctext x='35' y='115' font-weight='bold' fill='brown'%3EACTIVE LENDING:%3C/text%3E",
-//           "%3Ctext x='175' y='115' font-weight='normal' fill='brown'%3E", uint2str(lendingBalance(_tokenId)), "%3C/text%3E",
-//
+           "%3Ctext x='175' y='90' font-weight='normal' fill='brown'%3E", uint2str(_myData.energy), "%3C/text%3E",
 
            ///// Top Middle
-                // Token Id -- Consider putting in top Right
-//           "%3Ctext x='35' y='135'  font-weight='bold' fill='brown'%3EToken ID:%3C/text%3E",
-//           "%3Ctext x='175' y='135' font-weight='normal' fill='brown'%3E", uint2str(uint256(_tokenId)), "%3C/text%3E",
            "%3Ctext x='50%' y='23' text-anchor='middle' font-weight='bold' font-size='1.1em' fill='white'%3E", uint2str(uint256(_tokenId)), "%3C/text%3E",
 
           ///// Bottom Middle
            "%3Ctext x='50%' y='338' text-anchor='middle' font-weight='bold' font-size='1.1em' fill='white'%3E ETHEREUM %3C/text%3E",
-
-
-           // dominant-baseline='middle'
-
+            // dominant-baseline='middle'
 
             // Main image
             mainImage,
@@ -824,15 +974,7 @@ event Received(address sender, uint amount);
             "%3C/svg%3E"
             ));
 
-//            SVG = '<svg xmlns="http://www.w3.org/2000/svg" height="500" width="500"> <circle cx="250" cy="250" r="200" stroke="black" stroke-width="3" fill="blue" />  </svg>';
-
-
-        if (_dipLevel >= 0 && _dipLevel < 2){
-            return formatTokenURI(_tokenId, svgToImageURI(SVG));
-        }
-        else {
-            return "";
-        }
+        return formatTokenURI(_tokenId, svgToImageURI(SVG));
     }
 
 
@@ -851,69 +993,38 @@ event Received(address sender, uint amount);
     }
 
     function setEnergy(uint256 _tokenId, uint256 _energy) external { // todo: Limit callers to Dip_Staking address
-        require(_energy <= tokenIdToEnergy[_tokenId], "Can't increase energy"); // set equal??? check in other places
-        tokenIdToEnergy[_tokenId] = _energy;
-    }
-
-
-    function setDipLevel(uint256 _tokenId, uint8 _dipLevel) public onlyOwner {
-        require(_dipLevel >=0 && _dipLevel < 8, "Invalid Dip Level");
-        require(_tokenId < tokenCounter, "Invalid tokenId");
-//        bytes32 _requestId = tokenIdToRequestId[_tokenId];
-        tokenIdToDipLevel[_tokenId] = _dipLevel;
+        Data memory _myData = unpackData(_tokenId);
+        require(_energy <= _myData.energy, "Can't increase energy"); // set equal??? check in other places
+        _myData.energy = _energy;
+        tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
     }
 
 
     function formatTokenURI(uint256 _tokenId, string memory imageURI) public view returns (string memory) {
-        bool ENCODE = true;
-
-        if (ENCODE){
-            return string(
-                abi.encodePacked(
-                    "data:application/json;base64,",
-                    Base64.encode(
-                        string(
-                            abi.encodePacked(
-
-                                '{"description": "The NFT limit order that earns money!"',
-                                ', "external_url": "https://webuythedip.com"',
-                                ', "image": "',
-                                 imageURI, '"',
-                                ', "name": "BuyTheDip"',
-                                // attributes
-                                ', "attributes": [{"display_type": "number", "trait_type": "Dip Level", "value": ',
-                                tokenIdToDipLevel[_tokenId]==0 ? "0": "1",  ' }',
-                                ', {"display_type": "number", "trait_type": "Dip Value", "value": ',
-                                uint2str(uint(tokenIdToDipValue[_tokenId])),   ' }',
-                                ']', // End Attributes
-                                '}'
-                            )
+        Data memory _myData = unpackData(_tokenId);
+        return string(
+            abi.encodePacked(
+                "data:application/json;base64,",
+                Base64.encode(
+                    string(
+                        abi.encodePacked(
+                            '{"description": "The NFT limit order that earns money!"',
+                            ', "external_url": "https://webuythedip.com"',
+                            ', "image": "',
+                             imageURI, '"',
+                            ', "name": "BuyTheDip"',
+                            // attributes
+                            ', "attributes": [{"display_type": "number", "trait_type": "Dip Level", "value": ',
+                            uint2str(uint256(_myData.dipLevel)),   ' }',
+                            ', {"display_type": "number", "trait_type": "Dip Value", "value": ',
+                            uint2str(uint256(_myData.dipValue)),   ' }',
+                            ']', // End Attributes
+                            '}'
                         )
                     )
                 )
-            );
-        }
-        // This creates bad JSON file, but showed up on Opensea--ONCE!
-        else {
-            // todo: clean this up
-//            return string(
-//                abi.encodePacked(
-//                    'data:application/json,',
-//                    "{'description': 'The NFT limit order that earns money!'",
-//                    ", 'external_url': 'https://webuythedip.com'",
-//                    ", 'image': '",
-//                     imageURI, "'",
-//                    ", 'name': 'BuyTheDip'",
-//                    // attributes
-//                    ", 'attributes': [{'display_type': 'number', 'trait_type': 'Dip Level', 'value': ",
-//                    tokenIdToDipLevel[_tokenId]==0 ? '0': '1',  " }",
-//                    ", {'display_type': 'number', 'trait_type': 'Dip Value', 'value': ",
-//                    uint2str(uint(tokenIdToDipValue[_tokenId])),   " }",
-//                    "]", // End Attributes
-//                    "}"
-//                )
-//            );
-        }
+            )
+        );
     }
 
     function uint2str(uint256 _i, uint256 _totalDecimals, uint256 _decimalPlaces) internal pure returns (string memory _uintAsString) {
@@ -945,79 +1056,46 @@ event Received(address sender, uint amount);
     /////////// yUDSC ///////////
     /////////////////////////////
 
-  // todo -- Test this out
-  // todo -- Incorporate into buying dip and buying NFT (2 times)
-//  function save(uint amount) internal {
-//    usdc.transferFrom(msg.sender, address(this), amount);
-//    _save(amount);
-//  }
-
-
-//// two functions. One to retrieve with fee. one to retrieve while buying dip
-//  function retrieveLentStablecoins(uint256 _tokenId) internal returns(uint256) {
-//    uint256 amount = tokenIdToStableCoin[_tokenId];
-//    uint256 balanceShares = yUSDC.balanceOf(address(this));
-//    uint256 shareOfShares = amount * balanceShares / totalStableCoin;
-//    totalStableCoin = totalStableCoin - amount; // amount invested, not active balance
-//    yUSDC.withdraw(shareOfShares);
-//    usdc.transfer(address(this), shareOfShares);
-////    tokenIdToStableCoin[_tokenId] = 0;
-////    uint256 balanceUSDC = usdc.balanceOf(address(this));
-////    if(balanceUSDC > 0) {
-////      _save(balanceUSDC);
-////    }
-//    return shareOfShares;
-//  }
-
-  // todo -- create mechanism for retrieving profits. Do we keep profits in the vault?
     // Profits are going to be sent to the staking contract. For simplicity, in native coin.
   function retrieveLentStablecoins(uint256 _tokenId, uint256 _feePercent) internal returns(uint256) {
-        uint256 amount = tokenIdToStableCoin[_tokenId];
+        Data memory _myData = unpackData(_tokenId);
         uint256 balanceShares = yUSDC.balanceOf(address(this));
-        uint256 shareOfShares = amount * balanceShares / totalStableCoin;
+        //yUSDC.wei_balance
+        uint256 shareOfShares = _myData.stableCoinAmount * balanceShares / totalStableCoin;
 
-        tokenIdToStableCoin[_tokenId] = 0;
-        totalStableCoin = totalStableCoin - amount; // amount invested, not active balance
+        _myData.stableCoinAmount = 0;
+        tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
+
+        // todo-- this should probably be less, as the fees were kept in
+        require(totalStableCoin >= shareOfShares, "shareOfShares is oversized");
+        totalStableCoin = totalStableCoin - shareOfShares*(10000 - _feePercent)/10000; // _myData.stableCoinAmount invested, not active balance to-- this should probably be less
 
         yUSDC.withdraw(shareOfShares*(10000 - _feePercent)/10000);
         usdc.transfer(address(this), shareOfShares*(10000 - _feePercent)/10000);
 
-        // todo -- update site profits
         contractStablecoinProfit += shareOfShares*_feePercent/10000;
 
-        releaseProfits();
+        if (contractStablecoinProfit > PROFITRELEASETHRESHOLD) {
+            releaseOwnerProfits(); // for contract, not NFTHolder
+        }
 
         return shareOfShares*(10000 - _feePercent)/10000;
   }
 
-  function releaseProfits() internal {
+    // todo -- make internal after testing
+  function releaseOwnerProfits() public {
       // address profitReceiver
+      require(contractStablecoinProfit > PROFITRELEASETHRESHOLD, "Stablecoin profit below threshold.");
+
       uint256 profit = contractStablecoinProfit;
       contractStablecoinProfit = 0;
-      if ( profit > PROFITRELEASETHRESHOLD) {
-          withdrawProfitsFromLending(); // todo--confirm correct function
-          (bool res,) = profitReceiver.call{value : profit}("Releasing profits.");
-          require(res, "Could not release profits."); // todo -- what about gas fees?
-      }
+      withdrawProfitsFromLending(); // todo--confirm correct function
+      (bool res,) = profitReceiver.call{value : profit}("Releasing profits.");
+      require(res, "Could not release profits."); // todo -- what about gas fees?
   }
 
-//    function prematureStablecoinWithdrawal(uint256 _tokenId) internal returns(uint256) {
-//        uint256 amount = tokenIdToStableCoin[_tokenId];
-////        address recipient = ownerOf(_tokenId); // use if want to send stablecoin, not native coin
-//        address recipient = address(this);
-//        uint256 balanceShares = yUSDC.balanceOf(address(this));
-//        uint256 shareOfShares = amount * balanceShares / totalStableCoin;
-//
-//        tokenIdToStableCoin[_tokenId] = 0;
-//        totalStableCoin = totalStableCoin - amount; // amount invested, not active balance
-//
-//        yUSDC.withdraw(shareOfShares*(10000 - EARLYWITHDRAWALFEEPERCENT)/10000);
-//        usdc.transfer(recipient, shareOfShares*(10000 - EARLYWITHDRAWALFEEPERCENT)/10000);
-//        return shareOfShares*(10000 - EARLYWITHDRAWALFEEPERCENT)/10000;
-//  }
 
     function withdrawProfitsFromLending() internal {
-//        require(msg.sender == owner(), "must be owner");
         uint256 balanceShares = yUSDC.balanceOf(address(this));
         uint256 shareOfShares = contractStablecoinProfit * balanceShares / totalStableCoin;
 
@@ -1027,7 +1105,7 @@ event Received(address sender, uint amount);
         yUSDC.withdraw(shareOfShares);
         usdc.transfer(msg.sender, shareOfShares);
 
-        // emit event
+        // emit event?
   }
 
 
@@ -1036,20 +1114,22 @@ event Received(address sender, uint amount);
     yUSDC.deposit(_amount);
   }
 
-  function getStableCoinBalanceGivenId(uint256 _tokenId) internal view returns(uint256) {
-    uint256 amount = tokenIdToStableCoin[_tokenId];
-    uint256 balanceShares = yUSDC.balanceOf(address(this));
-    uint256 shareOfShares = totalStableCoin==0 ? 0 : amount * balanceShares / totalStableCoin;
-    return shareOfShares;
- }
+    function getStableCoinBalanceGivenId(uint256 _tokenId) internal view returns(uint256) {
+        Data memory _myData = unpackData(_tokenId);
+//        uint256 amount = tokenIdToStableCoin[_tokenId];
+        uint256 balanceShares = yUSDC.balanceOf(address(this));
+        return totalStableCoin==0 ? 0 : _myData.stableCoinAmount * balanceShares / totalStableCoin;
+//        uint256 shareOfShares = totalStableCoin==0 ? 0 : _myData.stableCoinAmount * balanceShares / totalStableCoin;
+//        return shareOfShares;
+    }
 
 
-  function lendingBalance(uint256 _tokenId) internal view returns(uint256) {
+  function lendingBalance(uint256 _tokenId) public view returns(uint256) {
 //    uint256 price = yUSDC.getPricePerFullShare();
+    Data memory _myData = unpackData(_tokenId);
     uint256 price = 1;
     uint256 balanceShares = yUSDC.balanceOf(address(this));
-    uint256 amount = tokenIdToStableCoin[_tokenId];
-    return totalStableCoin==0 ? 0 : balanceShares * price * amount / totalStableCoin;
+    return totalStableCoin==0 ? 0 : balanceShares * price * _myData.stableCoinAmount / totalStableCoin;
   }
 
 }

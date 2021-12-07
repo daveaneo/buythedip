@@ -12,6 +12,9 @@ def main():
     # Get the latest of the collectables
     # print(f'Total number of collectibles: {len(BuyTheDipNFT)}')
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+
+    create_single_collectible(0, 10**15)
+
     total_tokens = btd.tokenCounter()
 
     print(f'NFTs in latest deployment: {total_tokens}')
@@ -19,7 +22,7 @@ def main():
     # reset_all_dip_levels(total_tokens)
     print(f'Dip Levels:')
     print_all_dip_levels(total_tokens)
-    # perform_upkeep()
+    perform_upkeep()
     # print(f'After upkeep:')
     # print_all_dip_levels(total_tokens)
 
@@ -98,3 +101,22 @@ def side_piece():
         if BuyTheDipNFT[i] == "0x486424aa6c5f9b90789dc6e5843581e69a89b895":
             print(f'Found at {i}')
             print(BuyTheDipNFT[i].tokenURI)
+
+
+def create_single_collectible(percent, eth_amount):
+    dev = accounts.add(config["wallets"]["from_key"])
+    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    num_of_collectibles = btd.tokenCounter()
+    try:
+        tx = btd.createCollectible(percent, {"from": dev, "amount": eth_amount})  # dictionary needed for payables?)
+    except Exception as e:
+        print(f'Transaction failed."')
+        print(f'e: {e}')
+
+    if tx: print(f'tx.info(): {tx.info()}')
+
+
+    assert tx is not None
+    assert num_of_collectibles + 1 == btd.tokenCounter()
+
+    return num_of_collectibles # token id of new token

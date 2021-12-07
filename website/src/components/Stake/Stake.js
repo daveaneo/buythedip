@@ -123,7 +123,7 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
   render() {
 
     return (
-      <section className="hero-section" id="mint">
+      <section className="hero-section" id="stake">
         <div className="container">
           <h1>Stake</h1>
           <div classname="flex-row">
@@ -136,8 +136,9 @@ contract = new web3.eth.Contract(abiBTD,buyTheDipAddress);
                 step="1"
                 max={this.state.tokenCounter}
                 className ="input-field"
+                placeholder = "0"
               />
-              <label style= {{marginLeft: '1em'}} for="TokenId">Token Id</label>
+              <label className="input-field-label" for="TokenId">Token Id</label>
            </div>
           <div className="button-group">
             <div
