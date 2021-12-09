@@ -396,7 +396,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 public swapSlippage = 10000; // full slippage
     uint256 public totalStableCoin = 0;
 
-    uint256 private immutable interval = 60;
+    uint256 private checkUpkeepInterval = 60;
     uint256 private lastTimeStamp;
     uint256 private MINCOINDEPOSIT = 10**14;
     uint256 private EARLYWITHDRAWALFEEPERCENT = 300; // (out of 100*100)
@@ -405,7 +405,12 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 private STABLECOINDUSTTHRESHOLD = 10**6/10; //10 cents
     uint256 private PROFITRELEASETHRESHOLD = 10**16;
     address public profitReceiver;
-    uint256 public contractStablecoinProfit;
+    uint256 public contractStableCoinProfit;
+
+    enum ConfigurableVariables { SwapSlippage,
+        CheckUpkeepInterval, MinCoinDeposit, EarlyWithdrawalFeePercent, NormalWithdrawalFeePercent,
+        MintFee, StableCoinDustThreshold, ProfitReleaseThreshold, ContractStableCoinProfit }
+
 
     ///////////////////////////////////////////
     ///////     CONFIG INFORMATION     ////////
@@ -454,6 +459,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
     address public addy;
 
+        // todo-- this should have more info, like address or tokenId
     event CoinsReleasedToOwner(
         uint256 amountETH,
         uint256 valueInUSD,
@@ -470,8 +476,15 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
     event Received(
         address sender,
-        uint amount
+        uint256 amount
     );
+
+    // todo-- helper event to display information
+    event IntentionToSwap(
+        uint256 amountToSwap,
+        uint256 amountInAccount
+    );
+
 
     modifier onlyKeeper {
        require(true);
@@ -606,7 +619,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
             tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
 
 
-            contractStablecoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
+            contractStableCoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
 
 //            require(tokenIdToStableCoin[tokenCounter] > 0, "Error! No tokens bought.");
             require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
@@ -655,7 +668,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
         (, uint256 stablecoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
         _myData.stableCoinAmount = (msg.value - MINTFEE) * stablecoinReceived/ (msg.value);
-        contractStablecoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
+        contractStableCoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
 
         require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
 
@@ -766,7 +779,8 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
             // get stablecoin amount after penalty
             uint256 _withdrawal = retrieveLentStablecoins(_tokenId, EARLYWITHDRAWALFEEPERCENT);
             if(_withdrawal > 0) {
-                IERC20(StableCoinAddress).approve(address(router), _withdrawal);
+                usdc.approve(address(router), _withdrawal);
+//                IERC20(StableCoinAddress).approve(address(router), _withdrawal);
                 (uint256 ETHSent, uint256 USDTReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
             }
         }
@@ -810,7 +824,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
         uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
         //todo: (ETHSent, USDTReceived) may be reversed
-        IERC20(StableCoinAddress).approve(address(router), _withdrawal);
+        usdc.approve(address(router), _withdrawal);
         (uint256 USDTReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
 
         emit CoinsReleasedToOwner(ETHSent, USDTReceived, block.timestamp);
@@ -838,7 +852,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     }
 
     function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
-        upkeepNeeded = (block.timestamp - lastTimeStamp) > interval && highestDip <= getLatestPrice();
+        upkeepNeeded = (block.timestamp - lastTimeStamp) > checkUpkeepInterval && highestDip <= getLatestPrice();
         // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
     }
 
@@ -1052,6 +1066,90 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         return string(bstr);
     }
 
+
+
+
+    /////////////////////////////////////////////
+    /////////// Configuration Helpers ///////////
+    /////////////////////////////////////////////
+
+  function changeProfitReceiver(address _newReceiver) external {
+    require(msg.sender == owner() && _newReceiver != owner(), "only owner can change configuration");
+    profitReceiver = _newReceiver;
+  }
+
+  function changeConfiguration(uint256 _enumValue, uint256 _newValue) external {
+    require(_enumValue < 8, "No such configuration data.");
+    require(msg.sender == owner(), "only owner can change configuration");
+
+    ConfigurableVariables parameter = ConfigurableVariables(_enumValue);
+
+    if(parameter == ConfigurableVariables.SwapSlippage){
+        require(_newValue<10000);
+        swapSlippage = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.CheckUpkeepInterval){
+        checkUpkeepInterval = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.MinCoinDeposit){
+        MINCOINDEPOSIT = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.EarlyWithdrawalFeePercent){
+        require(_newValue<10000); // todo -- confirm percentage is out of 10,000
+        EARLYWITHDRAWALFEEPERCENT = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.NormalWithdrawalFeePercent){
+        require(_newValue<10000); // todo -- confirm percentage is out of 10,000
+        NORMALWITHDRAWALFEEPERCENT = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.MintFee){
+        MINTFEE = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.StableCoinDustThreshold){
+        STABLECOINDUSTTHRESHOLD = _newValue;
+    }
+    else if(parameter == ConfigurableVariables.ProfitReleaseThreshold){
+        PROFITRELEASETHRESHOLD = _newValue;
+    }
+  }
+
+  function getConfiguration(uint256 _enumValue) external view returns(uint256) {
+    require(_enumValue < 8, "No such configuration data.");
+
+    ConfigurableVariables parameter = ConfigurableVariables(_enumValue);
+    uint256 _ret;
+
+    if(parameter == ConfigurableVariables.SwapSlippage){
+        _ret = swapSlippage;
+    }
+    else if(parameter == ConfigurableVariables.CheckUpkeepInterval){
+        _ret = checkUpkeepInterval;
+    }
+    else if(parameter == ConfigurableVariables.MinCoinDeposit){
+        _ret = MINCOINDEPOSIT;
+    }
+    else if(parameter == ConfigurableVariables.EarlyWithdrawalFeePercent){
+        _ret = EARLYWITHDRAWALFEEPERCENT;
+    }
+    else if(parameter == ConfigurableVariables.NormalWithdrawalFeePercent){
+        _ret = NORMALWITHDRAWALFEEPERCENT;
+    }
+    else if(parameter == ConfigurableVariables.MintFee){
+        _ret = MINTFEE;
+    }
+    else if(parameter == ConfigurableVariables.StableCoinDustThreshold){
+        _ret = STABLECOINDUSTTHRESHOLD;
+    }
+    else if(parameter == ConfigurableVariables.ProfitReleaseThreshold){
+        _ret = PROFITRELEASETHRESHOLD;
+    }
+      return _ret;
+  }
+
+
+
+
+
     /////////////////////////////
     /////////// yUDSC ///////////
     /////////////////////////////
@@ -1073,9 +1171,9 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         yUSDC.withdraw(shareOfShares*(10000 - _feePercent)/10000);
         usdc.transfer(address(this), shareOfShares*(10000 - _feePercent)/10000);
 
-        contractStablecoinProfit += shareOfShares*_feePercent/10000;
+        contractStableCoinProfit += shareOfShares*_feePercent/10000;
 
-        if (contractStablecoinProfit > PROFITRELEASETHRESHOLD) {
+        if (contractStableCoinProfit > PROFITRELEASETHRESHOLD) {
             releaseOwnerProfits(); // for contract, not NFTHolder
         }
 
@@ -1085,27 +1183,43 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     // todo -- make internal after testing
   function releaseOwnerProfits() public {
       // address profitReceiver
-      require(contractStablecoinProfit > PROFITRELEASETHRESHOLD, "Stablecoin profit below threshold.");
+      require(contractStableCoinProfit > PROFITRELEASETHRESHOLD, "Stablecoin profit below threshold.");
 
-      uint256 profit = contractStablecoinProfit;
-      contractStablecoinProfit = 0;
-      withdrawProfitsFromLending(); // todo--confirm correct function
-      (bool res,) = profitReceiver.call{value : profit}("Releasing profits.");
-      require(res, "Could not release profits."); // todo -- what about gas fees?
+      uint256 profit = contractStableCoinProfit;
+//      contractStableCoinProfit = 0; handled below
+      // get USDC
+      uint256 _withdrawal = withdrawProfitsFromLending(); // todo--confirm correct function
+
+      // transfer USDC to ETH
+
+        // uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
+        usdc.approve(address(router), _withdrawal);
+        // todo--this is failing and I don't knw why
+        (uint256 stableCoinReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, profitReceiver, router, swapSlippage);
+
+//        emit IntentionToSwap(_withdrawal, usdc.balanceOf(address(this)));
+
+        emit CoinsReleasedToOwner(ETHSent, stableCoinReceived, block.timestamp);
+
+      // todo -- remove old way of transferring
+//      (bool res,) = profitReceiver.call{value : profit}("Releasing profits.");
+//      require(res, "Failed to release profits to owner"); // todo -- what about gas fees?
   }
 
-
-    function withdrawProfitsFromLending() internal {
+    // todo -- refector and combine with: retrieveLentStablecoins
+    function withdrawProfitsFromLending() internal returns(uint256){
         uint256 balanceShares = yUSDC.balanceOf(address(this));
-        uint256 shareOfShares = contractStablecoinProfit * balanceShares / totalStableCoin;
+        uint256 shareOfShares = contractStableCoinProfit * balanceShares / totalStableCoin;
 
-        totalStableCoin = totalStableCoin - contractStablecoinProfit; // amount invested, not active balance
-        contractStablecoinProfit = 0;
+        totalStableCoin = totalStableCoin - contractStableCoinProfit; // amount invested, not active balance
+        contractStableCoinProfit = 0;
 
         yUSDC.withdraw(shareOfShares);
-        usdc.transfer(msg.sender, shareOfShares);
-
+        usdc.transfer(address(this), shareOfShares);
+//        usdc.transfer(msg.sender, shareOfShares);
+        //todo -- confirm that contractStableCoinProfit and shareOfShares --using two different values--won't cause conflict
         // emit event?
+        return shareOfShares;
   }
 
 
