@@ -118,49 +118,97 @@ interface ERC721TokenReceiver {
 
 contract DipStaking is Ownable, ERC721TokenReceiver  {
     BuyTheDipNFT public BTD;
-    mapping(uint256=>address) public previousOwner;
-    mapping(uint256=>uint256) public stakeStartTimestamp; // we went to disencentivize people who game the system? Maybe don' need to worry
-    mapping(uint256=>uint256) public moneys; // we went to disencentivize people who game the system? Maybe don' need to worry
-    uint256 public moneysReceived;
+    struct Staker {
+        address previousOwner;
+        uint64 stakeStartTimestamp;
+        uint192 moneys;
+    }
+
+//    mapping(uint256=>address) public previousOwner;
+//    mapping(uint256=>uint256) public stakeStartTimestamp; // we went to disencentivize people who game the system? Maybe don' need to worry
+//    mapping(uint256=>uint256) public moneys; // we went to disencentivize people who game the system? Maybe don' need to worry
+
+    mapping(uint256=>Staker) public stakers;
+
     uint256[] public activeNFTArray;
-    uint256 public reservedFundsForStakers=0;
+    uint256 public reservedFundsForInactiveStakers=0; // inactive Stakers
     uint256 public reservedFundsForOwners=0;
+    uint256 public ownersCutPercentage=2500; // out of 10,000 (100%)
 
-    uint256 MINSTAKINGTIME = 60*60*24*7; // 1 week
+    uint256 public MinStakingTime = 0; //60*60*24*7; // 1 week -- todo: update
 
+    event FundsWithdrawnToNFTStaker(
+        uint256 amount,
+        address to,
+        uint256 timestamp
+    );
+
+    event Unstaked(
+        uint256 token,
+        address to,
+        uint256 timestamp
+    );
+
+    // todo -- consider if this will be a pool for one token or all of them
     constructor(address _BuyTheDipNFTAddress) public {
         // set _BuyTheDipNFTAddress
         BTD = BuyTheDipNFT(payable(_BuyTheDipNFTAddress));
     }
 
-    /** @dev Unpacks 3 uints into 1 uint to (256) -> (128, 64, 64)
-        @param _userDeposit -- 256 bit encoding of deposit, blockDepositAmount, and blockDeposited
-      */
-    function unpackData(uint256 _userDeposit) internal pure returns (uint256, uint256, uint256){
-        uint256 _deposit = uint256(uint128(_userDeposit));
-        uint256 _blockDepositAmount = uint256(uint64(_userDeposit >> 128));
-        uint256 _blockDeposited = uint256(uint64(_userDeposit >> 192));
-        return (_deposit, _blockDepositAmount, _blockDeposited);
-    }
-
-    // todo -- change pack/unpack to internal
-    /** @dev Packs 3 uints into 1 uint to save space (128, 64, 64) -> 256
-        @param _deposit -- total deposit, uint128
-        @param _blockDepositAmount -- amount deposited in this block, uint64
-        @param _blockDeposited -- block.timestamp, uint64
-      */
-    function packData(uint256 _deposit, uint256 _blockDepositAmount, uint256 _blockDeposited) internal pure returns (uint256){
-        uint256 ret = _deposit;
-        ret |= _blockDepositAmount << 128;
-        ret |= _blockDeposited << 192;
-        return ret;
-    }
+//    /** @dev Unpacks 3 uints into 1 uint to (256) -> (128, 64, 64)
+//        @param _userDeposit -- 256 bit encoding of deposit, blockDepositAmount, and blockDeposited
+//      */
+//    function unpackData(uint256 _userDeposit) internal pure returns (uint256, uint256, uint256){
+//        uint256 _deposit = uint256(uint128(_userDeposit));
+//        uint256 _blockDepositAmount = uint256(uint64(_userDeposit >> 128));
+//        uint256 _blockDeposited = uint256(uint64(_userDeposit >> 192));
+//        return (_deposit, _blockDepositAmount, _blockDeposited);
+//    }
 
 
+//    mapping(uint256=>address) public previousOwner; 160 bits
+//    mapping(uint256=>uint256) public stakeStartTimestamp; 32 bits
+//    mapping(uint256=>uint256) public moneys; 128
 
+//    // todo -- may not use this as packing size doesn't work out well. Create packed structure?
+//    // todo -- change pack/unpack to internal
+//    /** @dev Packs 3 uints into 1 uint to save space (, , ) -> 256
+//        @param _dipValue -- total deposit, uint
+//        @param _stableCoinAmount -- amount deposited in this block, uint
+//        @param _moneys -- block.timestamp, uint
+//      */
+//    function packData(uint256 _dipValue, uint256 _stableCoinAmount, uint256 _moneys) internal pure returns (uint256){
+//       uint256 count = 0;
+//        uint256 ret = _dipValue;
+//        count += 160;
+//
+//        ret |= _stableCoinAmount << count;
+//        count += 32;
+//
+//        ret |= _moneys << count;
+//        count += 64;
+//
+//        return ret;
+//    }
+
+
+    // todo -- it seems like a bad idea to change state here. Is there going to be an issue for increased cost?
     receive() external payable{
-     // todo - // when receiving ETH, split it equally among all stakers and founders/owners
+         // todo - // when receiving ETH, split it equally among all stakers and founders/owners
+         //    uint256 public reservedFundsForOwners=0;
+         //    uint256 public ownersCutPercentage=2500; // out of 10,000 (100%)
+        reservedFundsForOwners += ownersCutPercentage*msg.value / 10000;
     }
+
+
+    /** @dev Adds up all active energy contributed by stakers
+        @param _addy -- new address for btd
+      */
+    function setBTDAdress(address _addy) external {
+        require((owner() == msg.sender) && (_addy != address(BTD)), "must be owner & address must change");
+        BTD = BuyTheDipNFT(payable(_addy));
+    }
+
 
     /** @dev Adds up all active energy contributed by stakers
       */
@@ -169,8 +217,8 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         uint256 _total = 0;
         for(uint256 i = 0; i < activeNFTArray.length; i++){ // is activeNFTArray.length dynamic here?
             uint256 _id = activeNFTArray[i];
-            if(BTD.getEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
-                _total += block.timestamp - stakeStartTimestamp[_id];
+            if(BTD.getEnergy(_id) + stakers[_id].stakeStartTimestamp > block.timestamp){
+                _total += block.timestamp - stakers[_id].stakeStartTimestamp;
             }
             else {
                 _total += BTD.getEnergy(_id);
@@ -184,12 +232,18 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         @param _id -- id of NFT. Must be previous owner to call
       */
     function unstake(uint256 _id) external {
-        require(msg.sender == previousOwner[_id], "Not owner.");
-        require(stakeStartTimestamp[_id] + MINSTAKINGTIME > block.timestamp, "Minimum staking period not met.");
+        require(msg.sender == stakers[_id].previousOwner, "Not owner.");
+        string memory return_message = string(abi.encodePacked("Minimum Staking Time Not Met. ",
+            "startStakeTime: " , uint2str(stakers[_id].stakeStartTimestamp),
+            "MinStakingTime: ", uint2str(MinStakingTime),
+            "Block.timestamp: ", uint2str(block.timestamp)
+            ));
+
+        require(stakers[_id].stakeStartTimestamp + MinStakingTime <= block.timestamp, return_message);
 
         withdrawRewards(_id);
-        BTD.approve(previousOwner[_id], _id); // todo -- necessary?
-        BTD.safeTransferFrom(address(this), previousOwner[_id], _id, "");
+        BTD.approve(stakers[_id].previousOwner, _id); // todo -- necessary?
+        BTD.safeTransferFrom(address(this), stakers[_id].previousOwner, _id, "");
 
         // Remove from array
         for (uint256 i=0; i< activeNFTArray.length; i++) {
@@ -200,26 +254,54 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
             }
         }
 
+        emit Unstaked(_id, stakers[_id].previousOwner, block.timestamp);
+
         // delete information to save space
-        delete previousOwner[_id];
-        delete stakeStartTimestamp[_id];
-        delete moneys[_id];
+//        delete previousOwner[_id];
+//        delete stakers[_ids.takeStartTimestamp[
+//        delete stakers[_id].moneys;
+        delete stakers[_id];
+
     }
 
-    //todo -- something here is going beyond boundary
+    /** @dev temporary helper #todo -- remove
+        @param _i -- integer to change to string
+      */
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len - 1;
+        while (_i != 0) {
+            bstr[k--] = bytes1(uint8(48 + _i % 10));
+            _i /= 10;
+        }
+        return string(bstr);
+    }
+
+
     /** @dev Withdraw native coin, which has been earned as a reward.
         @param _id -- id of NFT. Must be previous owner to call
       */
     function withdrawRewards(uint256 _id) public {
-        require(msg.sender == previousOwner[_id], "Not owner.");
+        require(msg.sender == stakers[_id].previousOwner, "Not owner.");
         flushTokenRewardsOf(_id);
-        reservedFundsForStakers -= moneys[_id];
-        uint256 _reward = moneys[_id];
-        moneys[_id] = 0;
-        (bool success, ) = address(previousOwner[_id]).call{value : _reward}("Releasing rewards to NFT owner."); // in native token
+        reservedFundsForInactiveStakers -= stakers[_id].moneys;
+        uint256 _reward = stakers[_id].moneys;
+        stakers[_id].moneys = 0;
+        emit FundsWithdrawnToNFTStaker(_reward, stakers[_id].previousOwner, block.timestamp);
+        (bool success, ) = address(stakers[_id].previousOwner).call{value : _reward}("Releasing rewards to NFT owner."); // in native token
         require(success, "Transfer failed.");
     }
 
+    // todo, this should be a separate address, not owner
     /** @dev Withdraw native coined, earned as reward, and set asid for owners/wallet
       */
     function withdrawRewardsForOwners() external {
@@ -233,7 +315,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     /** @dev Returns amount of staking funds available, total minus reserved for specific stakers who have been removed from active staking and from owners
       */
     function getAvailableStakingFunds() public view returns(uint256){
-        return (address(this).balance - reservedFundsForStakers - reservedFundsForOwners);
+        return (address(this).balance - reservedFundsForInactiveStakers - reservedFundsForOwners);
     }
 
     /** @dev moves token rewards from the pool and puts it in a separate account for one token. Decreases energy.
@@ -242,12 +324,12 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     function flushTokenRewardsOf(uint256 _tokenId) internal returns(bool){
         uint256 _totalStakingEnergy = getTotalStakingEnergy();
         uint256 _rewards = _totalStakingEnergy==0 ? 0: getAvailableStakingFunds() * getActiveEnergyOfToken(_tokenId) / _totalStakingEnergy;
-        moneys[_tokenId] += _rewards;
-        reservedFundsForStakers += _rewards;
+        stakers[_tokenId].moneys += uint192(_rewards);
+        reservedFundsForInactiveStakers += _rewards;
         bool popped = false;
         uint256 activeNFTArrayIndex=0;
         // if out of energy
-        if(BTD.getEnergy(_tokenId) + stakeStartTimestamp[_tokenId] < block.timestamp){
+        if(BTD.getEnergy(_tokenId) + stakers[_tokenId].stakeStartTimestamp < block.timestamp){
             BTD.setEnergy(_tokenId, 0);
             for(uint256 i=0; i<activeNFTArray.length;i++){
                 if(activeNFTArray[i]==_tokenId){
@@ -259,11 +341,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
             }
         }
         else {
-            stakeStartTimestamp[_tokenId] = block.timestamp;
+            stakers[_tokenId].stakeStartTimestamp = uint64(block.timestamp);
             BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
         }
 //        BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
-//        stakeStartTimestamp[_tokenId] = block.timestamp;
+//        stakers[_tokenIds.takeStartTimestamp[= block.timestamp;
         // todo--confirm functionality. Should this  also move _tokenId to inactive stakers? What calls this?
 
 
@@ -275,8 +357,8 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
       */
     function getActiveEnergyOfToken(uint256 _id) public view returns(uint256){
             uint256 _energy;
-            if(BTD.getEnergy(_id) + stakeStartTimestamp[_id] > block.timestamp){
-                _energy = block.timestamp - stakeStartTimestamp[_id];
+            if(BTD.getEnergy(_id) + stakers[_id].stakeStartTimestamp > block.timestamp){
+                _energy = block.timestamp - stakers[_id].stakeStartTimestamp;
             }
             else {
                 _energy = BTD.getEnergy(_id);
@@ -294,7 +376,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         uint256 index;
 
         for(uint256 i = 1; i < activeNFTArray.length + 1; i++){ // is activeNFTArray.length dynamic here?
-            if(BTD.getEnergy(activeNFTArray[i]) + stakeStartTimestamp[i] < block.timestamp){
+            if(BTD.getEnergy(activeNFTArray[i]) + stakers[i].stakeStartTimestamp < block.timestamp){
                 index = i - 1;
                 // Here, we shift the index because of [] popping
                 // Being sure not to go beyond the array or miss
@@ -317,7 +399,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         uint256 total=0;
         uint256 _tokenCounter = BTD.tokenCounter();
         for(uint256 i=0;i<_tokenCounter;i++){
-            if(previousOwner[i]==_addy){
+            if(stakers[i].previousOwner==_addy){
                 total +=1;
             }
         }
@@ -328,7 +410,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         // Two cycles are needed because of inability to push integers to memory array
         for(uint256 i=0;i<_tokenCounter;i++){
             if(count>=total){ break; }
-            if(previousOwner[i]==_addy){
+            if(stakers[i].previousOwner == _addy){
                 owned[count]=i;
                 count +=1;
             }
@@ -356,8 +438,8 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
 //          require(BTD.getEnergy(_tokenId) > 0, "Not enough energy.");
           require(BTD.qualifiesForStaking(_tokenId)==true,"Not qualified for staking");
 
-          stakeStartTimestamp[_tokenId] = block.timestamp;
-          previousOwner[_tokenId] = _from; //tx.origin; //msg.sender;
+          stakers[_tokenId].stakeStartTimestamp = uint64(block.timestamp);
+          stakers[_tokenId].previousOwner = _from; //tx.origin; //msg.sender;
           activeNFTArray.push(_tokenId);
 
         //        bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
@@ -368,13 +450,6 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
 // VRFConsumerBase,
 contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 public tokenCounter;
-
-//    mapping(uint256 => uint8) public tokenIdToDipLevel; // Number of times NFT has bought the dip
-//    mapping(uint256 => uint256) public tokenIdToDipValue; // Strike Price
-//    mapping(uint256 => uint256) public tokenIdToDipPercent; // Percent Drop
-//    mapping(uint256 => uint256) public tokenIdToStableCoin; // Amount of USDT purchased
-//    mapping(uint256 => bool) public tokenIdToIsWaitingToBuy; // True/False if waiting to buy
-//    mapping(uint256 => uint256) public tokenIdToEnergy; // True/False if waiting to buy
 
     mapping(uint256 => uint256) public tokenIdToPackedData; // compressed data for NFT
 
@@ -591,21 +666,10 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         public payable returns (bytes32){
             require (msg.value >= MINCOINDEPOSIT + MINTFEE, "Not enough native coin.");
             require(percentDrop < 100, "Percent X must conform to: 10 <= X < 100"); // todo: adjust 10% after testing
-
             updateAllBalances();
-
             _safeMint(msg.sender, tokenCounter);
-
-
-//            tokenIdToDipLevel[tokenCounter] = 0;
-//            tokenIdToDipValue[tokenCounter] = (100 - percentDrop) * getLatestPrice() / 100;
-//            tokenIdToDipPercent[tokenCounter] = percentDrop;
-//            tokenIdToStableCoin[tokenCounter] = swapETHForTokens(tokenCounter, msg.value);
-
             // MINTFEE and msg.value gets converted to stablecoin and sent to vault
             (, uint256 stablecoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
-//            tokenIdToStableCoin[tokenCounter] = (msg.value - MINTFEE) * stablecoinReceived/ (msg.value);
-
 
             Data memory _myData = Data( {
                 dipValue:(100 - percentDrop) * getLatestPrice() / 100,
@@ -617,13 +681,8 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
             });
 
             tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
-
-
             contractStableCoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
-
-//            require(tokenIdToStableCoin[tokenCounter] > 0, "Error! No tokens bought.");
             require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
-
             lendStableCoin(stablecoinReceived);
 
             // Update highestDip if needed
@@ -632,21 +691,16 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
             }
 
             totalStableCoin += stablecoinReceived; //tokenIdToStableCoin[tokenCounter];
-//            tokenIdToIsWaitingToBuy[tokenCounter] = true;
             _setTokenURI(tokenCounter, tokenURI(tokenCounter));
-
-//            tokenIdToPackedData[tokenCounter] = packData(
-//                (100 - percentDrop) * getLatestPrice() / 100,
-//                (msg.value - MINTFEE) * stablecoinReceived/ (msg.value),
-//                 0,
-//                 percentDrop,
-//                0,
-//                0
-//            );
-
             emit CollectibleCreated(tokenCounter, tokenIdToPackedData[tokenCounter], block.timestamp);
 
             tokenCounter = tokenCounter + 1;
+
+            if (contractStableCoinProfit > PROFITRELEASETHRESHOLD) {
+                releaseOwnerProfits(); // for contract, not NFTHolder
+            }
+
+
     }
 
     // todo: combine shared features from createCollectible
@@ -828,12 +882,13 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         (uint256 USDTReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
 
         emit CoinsReleasedToOwner(ETHSent, USDTReceived, block.timestamp);
-        _myData.isWaitingToBuy = 0;
         if (_myData.dipLevel < 7) { _myData.dipLevel += 1; }
 
-        _myData.energy += _myData.stableCoinAmount * _myData.dipLevel  * (_myData.dipPercent **2) / 10000; // todo -- choose energy formula
+        _myData.energy += 86400 + _myData.stableCoinAmount * _myData.dipLevel  * (_myData.dipPercent **2) / 10000; // todo -- choose energy formula
         //temp todo -- remove after testing
-        _myData.energy = 10000;
+//        _myData.energy = 10000;
+        _myData.stableCoinAmount = 0; // reset to 0
+        _myData.isWaitingToBuy = 0;
         tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
     }
 
@@ -1068,13 +1123,12 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
 
 
-
     /////////////////////////////////////////////
     /////////// Configuration Helpers ///////////
     /////////////////////////////////////////////
 
-  function changeProfitReceiver(address _newReceiver) external {
-    require(msg.sender == owner() && _newReceiver != owner(), "only owner can change configuration");
+  function setProfitReceiver(address _newReceiver) external {
+    require(msg.sender == owner() && _newReceiver != profitReceiver, "only owner can change configuration");
     profitReceiver = _newReceiver;
   }
 

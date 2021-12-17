@@ -61,14 +61,14 @@ def print_test(s):
 
 def test_do_tests_in_order():
     pass
-    # deploy_and_create()
+    deploy_and_create()
     # verify_packing()
     # contract_rewards_and_fees_for_contract_owner()
     # contract_rewards_and_fees_for_NFT_owner()
-    # staking_rewards_and_fees()
     # destroyAndRefund()
-    # test_stake_token()
-
+    # redip_test()
+    test_stake_token()
+    # todo -- exploitatoin tests
 
 #@pytest.fixture
 def deploy_and_create():
@@ -109,6 +109,42 @@ def deploy_and_create():
         # assert btd.tokenIdToEnergy(0) > 0
 
 
+def redip_test():
+    # enum DataProperties {DipValue, StableCoinAmount, Energy, DipPercent, DipLevel, IsWaitingToBuy};
+
+    # def perform_upkeep(deploy_and_create):
+    print(f'\n#### redip_test ####')
+    dev = accounts.add(config["wallets"]["from_key"])
+    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+
+    # dip_value 0
+    _id = create_single_collectible(0, 10**15)
+    dip_level = btd.getProperty(_id, 4, {"from": dev})
+    print_test("dip_level starts at 0")
+    assert dip_level == 0, f"starting dip level is not 0, {dip_level}"
+
+    # dip_value 1
+    perform_upkeep()
+
+    stable_coin_amount = btd.getProperty(_id, 1, {"from": dev})
+    print_test("stable_coin is 0 after buying dip")
+    assert stable_coin_amount == 0, f"stable_coin_amount != 0, {stable_coin_amount}"
+    dip_level = btd.getProperty(_id, 4, {"from": dev})
+    print_test("dip_level is 1 after buying dip")
+    assert dip_level == 1, f"Dip level should be 1, {dip_level}"
+
+    # dip_value 2
+    btd.redip(_id, {"from": dev, "value": 10**15})
+    dip_level = btd.getProperty, _id, 4, {"from": dev}
+    stable_coin_amount = btd.getProperty(_id, 1, {"from": dev})
+    print_test("stable_coin is greater than 0 after redip")
+    assert stable_coin_amount > 0, "stable_coin_amount is 0"
+    perform_upkeep()
+    dip_level = btd.getProperty(_id, 4, {"from": dev})
+    print_test("dip_level is 2 after rebuying dip")
+    assert dip_level == 2, f"Dip level should be 2, {dip_level}"
+
+
 # difficult to test
 def earn_interest_while_waiting_to_buy_dip():
 # def perform_upkeep(deploy_and_create):
@@ -124,19 +160,6 @@ def earn_interest_while_waiting_to_buy_dip():
     print(f'inital_balance: {initial_balance}, final_balance: {final_balanace}')
     print_test("Lend balance should increase (given enought time")
     assert final_balanace >= initial_balance # bad test. Need more time
-
-# todo
-def staking_rewards_and_fees():
-    _id = 0
-    print(f'\n#### staking_rewards_and_fees ####')
-    print(f'Staking token {_id}')
-
-    dev = accounts.add(config["wallets"]["from_key"])
-    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    dip_staking = DipStaking[len(DipStaking) - 1]
-
-    _id = create_single_collectible(0, 10**15)  # generates profit, but not collected
-    perform_upkeep()
 
 
 def contract_rewards_and_fees_for_NFT_owner():
@@ -215,11 +238,11 @@ def contract_rewards_and_fees_for_contract_owner():
     dev = accounts.add(config["wallets"]["from_key"])
     initial_balance = dev.balance();
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
-    start_profit = btd.contractStablecoinProfit()
+    start_profit = btd.contractStableCoinProfit()
 
     # minting an NFT
     _id = create_single_collectible(0, 10**15)
-    end_profit = btd.contractStablecoinProfit()
+    end_profit = btd.contractStableCoinProfit()
 
     print_test("Contract makes money when a NFt is minted.")
     assert start_profit < end_profit, f'profit not the same. Difference: {end_profit - start_profit}'
@@ -230,7 +253,7 @@ def contract_rewards_and_fees_for_contract_owner():
     initial_balance = dev.balance();
 
     perform_upkeep()
-    end_profit = btd.contractStablecoinProfit()
+    end_profit = btd.contractStableCoinProfit()
     final_balance = dev.balance();
 
     print(f'expecting these two numbers to be equal (start, final): {initial_balance} , {final_balance }')
@@ -238,19 +261,17 @@ def contract_rewards_and_fees_for_contract_owner():
     print(f'start_profit: {start_profit}')
     print(f'end_profit: {end_profit}')
 
-    #todo -- make sure user makes money, too
-
     print_test("Contract makes money when a dip is bought.")
     assert start_profit < end_profit
 
     # destroyAndRefund NFT
     _id = create_single_collectible(25, 10**15)
-    start_profit = btd.contractStablecoinProfit()
+    start_profit = btd.contractStableCoinProfit()
     initial_balance = dev.balance()
     btd.destroyAndRefund(_id, {"from": dev})
     final_balance = dev.balance()
 
-    end_profit = btd.contractStablecoinProfit()
+    end_profit = btd.contractStableCoinProfit()
 
     print_test("Contract makes money when a dip is bought.")
     assert start_profit < end_profit
@@ -259,9 +280,9 @@ def contract_rewards_and_fees_for_contract_owner():
     # Withdrawal to account
     # btd.retrieveLentStablecoins calls releaseProfits, which releases to designated wallet. This happens automatically.
     # _id = create_single_collectible(25, 10**16)
-    # start_profit = btd.contractStablecoinProfit()
+    # start_profit = btd.contractStableCoinProfit()
     # btd.destroyAndRefund(_id, {"from": dev})
-    # end_profit = btd.contractStablecoinProfit()
+    # end_profit = btd.contractStableCoinProfit()
     #
     # print_test("Contract makes money when a dip is bought.")
     # assert start_profit == end_profit
@@ -288,42 +309,102 @@ def destroyAndRefund():
 
 
 def test_stake_token():
-    # def test_stake_token():
-    _id = 0
     print(f'\n##### Staking Tests #####')
 
+    # ✓ test dipStaking receives NFT
+    # ✓ test dipStaking generates TotalStakingEnergy as time passes
+    # ✓ dipStaking withdraw funds gets profit for NFT owner
+    # ✓ dipstaking gets profit for contract owner
+    # ✓ dipstaking unstake returns ownership
+    # ✓ dipStaking rejects non-whitelisted NFTs
+    # ✓ dipStaking receives funds from BTD
+
+    # retrieve contracts
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    dip_staking = DipStaking.deploy(btd.address, {"from": dev}, publish_source=False) # returns tx receipt or other object?
     dip_staking = DipStaking[len(DipStaking) - 1]
 
+    # configure
+    btd.changeConfiguration(ConfigurableVariables.ProfitReleaseThreshold, 10**18, {"from": dev})
+
+
+    # ✓ test dipStaking receives NFT
     _id = create_single_collectible(0, 10**15)
     perform_upkeep()
+    assert btd.ownerOf(_id) == dev.address, f"dev does not own NFT"
+    btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
+    print_test("dip_staking should be new NFT owner")
+    assert btd.ownerOf(_id) == dip_staking.address, f'Transfer to dip_staking has failed. \nNFTowner: {btd.ownerOf(_id)}\ndipStaking: {dip_staking.address}'
 
-    if btd.ownerOf(_id) != dev.address:
-        # btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
-        pass
-        print('Error. Not owner.')
 
-    else:
-        btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
-
-    time.sleep(15)
+    # ✓ test dipStaking generates TotalStakingEnergy as time passes
+    time.sleep(35)
     energy = dip_staking.getTotalStakingEnergy()
-
     print_test('Sending NFT to DipStaking gives it energy:')
-    print(f'energy: {energy}')
-    assert energy > 0
+    assert energy > 0, f'energy: {energy} <-- 0'
 
-    # dip_staking.call({"value": 10000, "from": dev})
-    # send 100 (gwei?)
-    dev.transfer(dip_staking.address, 100)
 
-    #  get rewards in native token
-    dip_staking.withdrawRewards(_id, {"from": dev})
-    dip_staking.unstake(_id, {"from": dev})
+    # ✓ dipStaking withdraw funds gets profit for NFT owner
+    dev.transfer(dip_staking.address, 10**15)
+    bal_before = dev.balance()
+    tx = dip_staking.withdrawRewards(_id, {"from": dev})
+    time.sleep(15)
+    bal_after = dev.balance()
+    print_test("previous owner gets a profit in staking")
+    assert bal_after > bal_before, f"bal_before: {bal_before}\nbal_after: {bal_after}\ndiff: {bal_after-bal_before}"
 
-    print_test('Unstake removes balance:')
-    assert dip_staking.balance() == 0
+
+    # ✓ dipstaking gets profit for contract owner
+    bal_before = dev.balance()
+    dip_staking.withdrawRewardsForOwners({"from": dev})
+    time.sleep(15)
+    bal_after = dev.balance()
+    print_test("contract owner gets a profit in staking")
+    assert bal_after > bal_before, f"bal_before: {bal_before}\nbal_after: {bal_after}\ndiff: {bal_after-bal_before}"
+
+
+    # ✓ unstaking returns token, grants funds
+    dev.transfer(dip_staking.address, 10**15)
+    bal_before = dev.balance()
+    tx = dip_staking.unstake(_id, {"from": dev})
+    time.sleep(15)
+    bal_after = dev.balance()
+    print_test("unstaking returns NFT to previous owner")
+    assert btd.ownerOf(_id) == dev.address, f"dev does not own NFT"
+    print_test("NFT owner gets a profit in staking after unstaking")
+    assert bal_after > bal_before, f"bal_before: {bal_before}\nbal_after: {bal_after}\ndiff: {bal_after-bal_before}"
+
+
+    # ✓ dipStaking rejects non-whitelisted NFTs
+    dip_staking.setBTDAdress(dev.address, {"from": dev})
+    reverted = False
+    try:
+        tx = btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
+    except Exception as e:
+        # print(f'there should be an error we diagnose: {e}') #todo confirm exact revert language
+        # print(f'events: {tx.events}')
+        reverted = True;
+    finally:
+        print_test("non whitelisted NFT causes revert on transfer to staking")
+        # todo
+        assert reverted, "Transaction failed to revert."
+    dip_staking.setBTDAdress(btd.address, {"from": dev})
+
+
+    # ✓ dipstaking receives founds from BTD
+    tx = btd.setProfitReceiver(dip_staking.address, {"from": dev})
+    btd.changeConfiguration(ConfigurableVariables.ProfitReleaseThreshold, 0, {"from": dev})
+    bal_before = dip_staking.balance()
+    _id = create_single_collectible(0, 10**15)
+    bal_after = dip_staking.balance()
+    print_test("BTD sends funds to DipStaking")
+    assert bal_after > bal_before, f"dip_staking balance did not increase. Before, after:\n{bal_before}\n{bal_after}"
+
+
+    # reset for testing purposes
+    tx = btd.setProfitReceiver(dev.address, {"from": dev})
+    #   btd.changeConfiguration(ConfigurableVariables.ProfitReleaseThreshold, 0, {"from": dev})
 
 
 def verify_packing():
@@ -331,15 +412,16 @@ def verify_packing():
 
     dev = accounts.add(config["wallets"]["from_key"])
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    dip_staking = DipStaking[len(DipStaking) - 1]
 
     print_test("packing on BTD works")
     res = btd.verifyPacking()
     assert res == True
 
 
+    # todo -- dipstaking packing
     print_test("packing on DipStaking works: ")
-    print(f'--todo--')
-    # res = btd.verifyPacking()
+    # res = dip_staking.verifyPacking()
     assert res == True
 
 
@@ -353,9 +435,9 @@ def create_single_collectible(percent, eth_amount):
     t = btd.createCollectible(percent, {"from": dev, "amount": eth_amount})  # dictionary needed for payables?)
 
     assert t is not None
-    assert num_of_collectibles + 1 == btd.tokenCounter()
+    assert num_of_collectibles + 1 == btd.tokenCounter(), f'{num_of_collectibles +1} != {btd.tokenCounter()}'
 
-    return num_of_collectibles # token id of new token
+    return num_of_collectibles  # token id of new token
 
 
 def perform_upkeep():
@@ -363,8 +445,8 @@ def perform_upkeep():
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
     print(f'Performing Upkeep...')
     tx = btd.performUpkeepTest({"from": dev});
-    print(f'events: {tx.events}')
-    print(f'tx: {tx}')
+    # print(f'events: {tx.events}')
+    # print(f'tx: {tx}')
 
 
 def reset_all_dip_levels(total_tokens):
