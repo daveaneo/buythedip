@@ -66,7 +66,7 @@ library UniswapHelpers {
             minTokensToReceive = receivable * (10000 - _swapSlippage)/10000;
         }
 
-        // todo: For whatever reason, this is not working correctly when using pancakeswap
+        // todo: For whatever reason, this is not working correctly when using pancakeswap -- still?
         uint256[] memory amounts = _router.swapExactETHForTokens{value: ethAmount}( // ethAmount, path, to, block.timestamp ){ //ExactTokensForETHSupportingFeeOnTransferTokens(
             minTokensToReceive,
             path,
@@ -135,11 +135,19 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     uint256 public reservedFundsForOwners=0;
     uint256 public ownersCutPercentage=2500; // out of 10,000 (100%)
 
+    // todo create setFunctions for: ownersCutPercentage, "owners" address (founders?); VIP
     uint256 public MinStakingTime = 0; //60*60*24*7; // 1 week -- todo: update
+    address primaryProfitReceiver;
 
     event FundsWithdrawnToNFTStaker(
         uint256 amount,
-        address to,
+        address indexed to,
+        uint256 timestamp
+    );
+
+    event FundsWithdrawnToPrimraryProfitReceiver(
+        uint256 amount,
+        address indexed to,
         uint256 timestamp
     );
 
@@ -153,51 +161,34 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     constructor(address _BuyTheDipNFTAddress) public {
         // set _BuyTheDipNFTAddress
         BTD = BuyTheDipNFT(payable(_BuyTheDipNFTAddress));
+        primaryProfitReceiver = msg.sender;
     }
 
-//    /** @dev Unpacks 3 uints into 1 uint to (256) -> (128, 64, 64)
-//        @param _userDeposit -- 256 bit encoding of deposit, blockDepositAmount, and blockDeposited
-//      */
-//    function unpackData(uint256 _userDeposit) internal pure returns (uint256, uint256, uint256){
-//        uint256 _deposit = uint256(uint128(_userDeposit));
-//        uint256 _blockDepositAmount = uint256(uint64(_userDeposit >> 128));
-//        uint256 _blockDeposited = uint256(uint64(_userDeposit >> 192));
-//        return (_deposit, _blockDepositAmount, _blockDeposited);
-//    }
-
-
-//    mapping(uint256=>address) public previousOwner; 160 bits
-//    mapping(uint256=>uint256) public stakeStartTimestamp; 32 bits
-//    mapping(uint256=>uint256) public moneys; 128
-
-//    // todo -- may not use this as packing size doesn't work out well. Create packed structure?
-//    // todo -- change pack/unpack to internal
-//    /** @dev Packs 3 uints into 1 uint to save space (, , ) -> 256
-//        @param _dipValue -- total deposit, uint
-//        @param _stableCoinAmount -- amount deposited in this block, uint
-//        @param _moneys -- block.timestamp, uint
-//      */
-//    function packData(uint256 _dipValue, uint256 _stableCoinAmount, uint256 _moneys) internal pure returns (uint256){
-//       uint256 count = 0;
-//        uint256 ret = _dipValue;
-//        count += 160;
-//
-//        ret |= _stableCoinAmount << count;
-//        count += 32;
-//
-//        ret |= _moneys << count;
-//        count += 64;
-//
-//        return ret;
-//    }
-
-
     // todo -- it seems like a bad idea to change state here. Is there going to be an issue for increased cost?
+    /** @dev Receive ETH, do accounting for owners/vip cut
+      */
     receive() external payable{
-         // todo - // when receiving ETH, split it equally among all stakers and founders/owners
-         //    uint256 public reservedFundsForOwners=0;
-         //    uint256 public ownersCutPercentage=2500; // out of 10,000 (100%)
         reservedFundsForOwners += ownersCutPercentage*msg.value / 10000;
+    }
+
+
+    /** @dev changes ownersCutPercentage
+        @param _newCut -- percentage out of 10000
+      */
+    function setOwnersCutPercentage(uint256 _newCut) external {
+        require((owner() == msg.sender) && (_newCut != ownersCutPercentage) && (_newCut <= 10000), "must be owner, value <= 10000, value => changed");
+        ownersCutPercentage = _newCut;
+        // todo -- emit event
+    }
+
+
+    /** @dev Adds up all active energy contributed by stakers
+        @param _addy -- new address for btd
+      */
+    function setPrimaryProfitReceiverAddress(address _addy) external {
+        require((owner() == msg.sender) && (_addy != primaryProfitReceiver), "must be owner & address must change");
+        primaryProfitReceiver = _addy; //BuyTheDipNFT(payable(_addy));
+        // todo -- emit event
     }
 
 
@@ -224,22 +215,15 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
                 _total += BTD.getEnergy(_id);
             }
         }
-//        return _total == 0 ? 1: _total;
         return _total;
     }
 
-    /** @dev Remove NFT from staking pool
+    /** @dev Remove NFT from staking pool, send all profits to owner
         @param _id -- id of NFT. Must be previous owner to call
       */
     function unstake(uint256 _id) external {
         require(msg.sender == stakers[_id].previousOwner, "Not owner.");
-        string memory return_message = string(abi.encodePacked("Minimum Staking Time Not Met. ",
-            "startStakeTime: " , uint2str(stakers[_id].stakeStartTimestamp),
-            "MinStakingTime: ", uint2str(MinStakingTime),
-            "Block.timestamp: ", uint2str(block.timestamp)
-            ));
-
-        require(stakers[_id].stakeStartTimestamp + MinStakingTime <= block.timestamp, return_message);
+        require(stakers[_id].stakeStartTimestamp + MinStakingTime <= block.timestamp, "Minimum staking time not met.");
 
         withdrawRewards(_id);
         BTD.approve(stakers[_id].previousOwner, _id); // todo -- necessary?
@@ -255,38 +239,10 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         }
 
         emit Unstaked(_id, stakers[_id].previousOwner, block.timestamp);
-
-        // delete information to save space
-//        delete previousOwner[_id];
-//        delete stakers[_ids.takeStartTimestamp[
-//        delete stakers[_id].moneys;
         delete stakers[_id];
-
     }
 
-    /** @dev temporary helper #todo -- remove
-        @param _i -- integer to change to string
-      */
-    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint j = _i;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint k = len - 1;
-        while (_i != 0) {
-            bstr[k--] = bytes1(uint8(48 + _i % 10));
-            _i /= 10;
-        }
-        return string(bstr);
-    }
-
-
+    
     /** @dev Withdraw native coin, which has been earned as a reward.
         @param _id -- id of NFT. Must be previous owner to call
       */
@@ -301,15 +257,16 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         require(success, "Transfer failed.");
     }
 
-    // todo, this should be a separate address, not owner
+
     /** @dev Withdraw native coined, earned as reward, and set asid for owners/wallet
       */
-    function withdrawRewardsForOwners() external {
-        require(msg.sender == owner(), "Not owner.");
+    function withdrawRewardsForPrimaryProfitReceiver() external {
+        require(msg.sender == owner() || msg.sender == primaryProfitReceiver, "Not owner or profit receiver.");
         uint256 _reward = reservedFundsForOwners;
         reservedFundsForOwners = 0;
-        (bool success, ) = owner().call{value : _reward}("Releasing rewards to owner.");
+        (bool success, ) = primaryProfitReceiver.call{value : _reward}("Releasing rewards to primaryProfitReceiver.");
         require(success, "Transfer failed.");
+        emit FundsWithdrawnToPrimraryProfitReceiver(_reward, primaryProfitReceiver, block.timestamp);
     }
 
     /** @dev Returns amount of staking funds available, total minus reserved for specific stakers who have been removed from active staking and from owners
@@ -344,11 +301,6 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
             stakers[_tokenId].stakeStartTimestamp = uint64(block.timestamp);
             BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
         }
-//        BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
-//        stakers[_tokenIds.takeStartTimestamp[= block.timestamp;
-        // todo--confirm functionality. Should this  also move _tokenId to inactive stakers? What calls this?
-
-
         return popped;
     }
 
@@ -369,8 +321,6 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     /** @dev Flush all staked NFTs that have used up their energy
       */
     function flushInactive() internal {
-//        uint256 _id;
-//        uint256 _rewards;
 //        uint256 _totalEnergy = getTotalStakingEnergy(); // todo-- do we need to recalculate this in the for loop?
         bool popped = false;
         uint256 index;
@@ -380,10 +330,6 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
                 index = i - 1;
                 // Here, we shift the index because of [] popping
                 // Being sure not to go beyond the array or miss
-//                if(popped) { i-=1; } //
-//                else if(i >= activeNFTArray.length ) { break; } // strange way to avoid two arrays
-
-                // flush token. If popped, adjust array back one
                 if(flushTokenRewardsOf(activeNFTArray[index])){
                       i -= 1; // start with 1 to avoid underflow
                 }
@@ -424,24 +370,12 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
       */
 //    function stake(uint256 _id) external returns(bool) {
     function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes memory _data) external override returns(bytes4){
-        // receive tokens
-        // require to have power and correct dip status
-        // record previous owner
-        // set time record for when can remove token
-        // Create system for recording, distributing ETH
-        // Variables
-            // One timestamp for each NFT, mapping(uint256=>uint256), could be less if we wanted to include cash holding
-            // contract.balance - holdings (various) is used to cash out
-            // Each receive() updates which active NFTs and cashes out those that are inactive
           require(msg.sender==address(BTD), string(abi.encodePacked(msg.sender)));
-//          require(BTD.tokenIdToIsWaitingToBuy(_tokenId)==false,"Can't stake while waiting to buy dip.");
-//          require(BTD.getEnergy(_tokenId) > 0, "Not enough energy.");
           require(BTD.qualifiesForStaking(_tokenId)==true,"Not qualified for staking");
 
           stakers[_tokenId].stakeStartTimestamp = uint64(block.timestamp);
           stakers[_tokenId].previousOwner = _from; //tx.origin; //msg.sender;
           activeNFTArray.push(_tokenId);
-
         //        bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
         return this.onERC721Received.selector;
     }
@@ -453,8 +387,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
     mapping(uint256 => uint256) public tokenIdToPackedData; // compressed data for NFT
 
-    // todo run general test without "test"
-    //todo pack these differenly? (96, 96, 32, 8, 8, 8)
+    // todo -- could pack these differently. Pros and cons?
     struct Data {
         uint256 dipValue;
         uint256 stableCoinAmount;
@@ -466,8 +399,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
     enum DataProperties {DipValue, StableCoinAmount, Energy, DipPercent, DipLevel, IsWaitingToBuy}
 
-//    uint256 internal fee;
-    uint256 public highestDip = 0; //2**127 - 1; //todo: ~0
+    uint256 public highestDip = 0;
     uint256 public swapSlippage = 10000; // full slippage
     uint256 public totalStableCoin = 0;
 
@@ -538,6 +470,15 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     event CoinsReleasedToOwner(
         uint256 amountETH,
         uint256 valueInUSD,
+        uint256 indexed tokenId,
+        address indexed addy,
+        uint256 date
+    );
+
+    event CoinsReleasedToProfitReceiver(
+        uint256 amountETH,
+        uint256 valueInUSD,
+        address indexed addy,
         uint256 date
     );
 
@@ -570,7 +511,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     /** @dev Packs 6 uints from data structure into 1 uint to save space (96, 96, 32, 8, 8, 8) -> 256
         @param _myData -- data structure holding attributes of NFT
     */
-    function packDataStructure(Data memory _myData) public pure returns (uint256){
+    function packDataStructure(Data memory _myData) internal pure returns (uint256){
         return packData(_myData.dipValue, _myData.stableCoinAmount, _myData.energy, _myData.dipPercent, _myData.dipLevel, _myData.isWaitingToBuy);
     }
 
@@ -583,7 +524,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         @param _dipLevel -- level (number of times dip has been bought), "uint8"
         @param _isWaitingToBuy -- true if waiting to buy dip, false if dip bought and not redipped, uint8
       */
-    function packData(uint256 _dipValue, uint256 _stableCoinAmount, uint256 _energy, uint256 _dipPercent, uint256 _dipLevel, uint256 _isWaitingToBuy) public pure returns (uint256){
+    function packData(uint256 _dipValue, uint256 _stableCoinAmount, uint256 _energy, uint256 _dipPercent, uint256 _dipLevel, uint256 _isWaitingToBuy) internal pure returns (uint256){
         uint256 count = 0;
         uint256 ret = _dipValue;
         count += 96;
@@ -610,7 +551,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
         @param _id -- NFT id, which will pull the 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
       */
-    function unpackData(uint256 _id) public view returns (Data memory){
+    function unpackData(uint256 _id) internal view returns (Data memory){
 //        uint256 _myData = tokenIdToPackedData[_id];
         return _unpackData(tokenIdToPackedData[_id]);
     }
@@ -632,24 +573,19 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         return Data(_dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, _isWaitingToBuy);
     }
 
-    function verifyPacking() public view returns(bool){
-        uint256 compressed = packData(1,2,3,4,5,6);
-        Data memory _myData = _unpackData(compressed);
-//        if(_myData.isWaitingToBuy==1 && _myData.dipLevel==2 && _myData.dipPercent==3 && _myData.energy==4 && _myData.stableCoinAmount==5 && _myData.f==6){
-//            return true;
-//        }
-        if(
-            _myData.dipValue == 1 &&
-            _myData.stableCoinAmount == 2 &&
-            _myData.energy == 3 &&
-            _myData.dipPercent == 4 &&
-            _myData.dipLevel == 5 &&
-            _myData.isWaitingToBuy == 6
-        ) { return true;}
-
-
-        else {return false;}
-    }
+//    function verifyPacking() public view returns(bool){
+//        uint256 compressed = packData(1,2,3,4,5,6);
+//        Data memory _myData = _unpackData(compressed);
+//        if(
+//            _myData.dipValue == 1 &&
+//            _myData.stableCoinAmount == 2 &&
+//            _myData.energy == 3 &&
+//            _myData.dipPercent == 4 &&
+//            _myData.dipLevel == 5 &&
+//            _myData.isWaitingToBuy == 6
+//        ) { return true;}
+//        else {return false;}
+//    }
 
     constructor()
     public
@@ -800,6 +736,8 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         uint256 _newIndividialBalance;
         Data memory _myData;
 
+
+        // todo -- add contractStableCoinProfit update here
         for(uint256 i = 0; i < tokenCounter;i++){
             _myData = unpackData(i);
             if(_myData.isWaitingToBuy==1){
@@ -874,20 +812,17 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         // Confirm price
         Data memory _myData = unpackData(_tokenId);
         require(_myData.dipValue <= getLatestPrice(), 'Price above dipLevel');
-        emit CoinsReleasedToOwner(0, 0, block.timestamp);
 
         uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
         //todo: (ETHSent, USDTReceived) may be reversed
         usdc.approve(address(router), _withdrawal);
         (uint256 USDTReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
 
-        emit CoinsReleasedToOwner(ETHSent, USDTReceived, block.timestamp);
+        emit CoinsReleasedToOwner(ETHSent, USDTReceived, _tokenId, ownerOf(_tokenId), block.timestamp);
         if (_myData.dipLevel < 7) { _myData.dipLevel += 1; }
 
         _myData.energy += 86400 + _myData.stableCoinAmount * _myData.dipLevel  * (_myData.dipPercent **2) / 10000; // todo -- choose energy formula
-        //temp todo -- remove after testing
-//        _myData.energy = 10000;
-        _myData.stableCoinAmount = 0; // reset to 0
+        _myData.stableCoinAmount = 0;
         _myData.isWaitingToBuy = 0;
         tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
     }
@@ -1202,24 +1137,37 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
 
 
-
-
     /////////////////////////////
     /////////// yUDSC ///////////
     /////////////////////////////
 
+    // todo -- refector and combine with: retrieveLentStablecoins
+    function withdrawProfitsFromLending() internal returns(uint256){
+        uint256 balanceShares = yUSDC.balanceOf(address(this));
+        uint256 shareOfShares = contractStableCoinProfit * balanceShares / totalStableCoin;
+
+        // todo- make sure contractStableCoinProfit is getting size updates
+        totalStableCoin = totalStableCoin - contractStableCoinProfit; // amount invested, not active balance
+        contractStableCoinProfit = 0;
+
+        yUSDC.withdraw(shareOfShares);
+        usdc.transfer(address(this), shareOfShares);
+        // emit event?
+        return shareOfShares;
+    }
+
+
+
     // Profits are going to be sent to the staking contract. For simplicity, in native coin.
   function retrieveLentStablecoins(uint256 _tokenId, uint256 _feePercent) internal returns(uint256) {
         Data memory _myData = unpackData(_tokenId);
-        uint256 balanceShares = yUSDC.balanceOf(address(this));
-        //yUSDC.wei_balance
+        uint256 balanceShares = yUSDC.balanceOf(address(this)); //yUSDC.wei_balance => ???
         uint256 shareOfShares = _myData.stableCoinAmount * balanceShares / totalStableCoin;
 
         _myData.stableCoinAmount = 0;
         tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
 
-        // todo-- this should probably be less, as the fees were kept in
-        require(totalStableCoin >= shareOfShares, "shareOfShares is oversized");
+        require(totalStableCoin >= shareOfShares, "critical error: shareOfShares is oversized");
         totalStableCoin = totalStableCoin - shareOfShares*(10000 - _feePercent)/10000; // _myData.stableCoinAmount invested, not active balance to-- this should probably be less
 
         yUSDC.withdraw(shareOfShares*(10000 - _feePercent)/10000);
@@ -1236,45 +1184,16 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
     // todo -- make internal after testing
   function releaseOwnerProfits() public {
-      // address profitReceiver
-      require(contractStableCoinProfit > PROFITRELEASETHRESHOLD, "Stablecoin profit below threshold.");
+        require(contractStableCoinProfit > PROFITRELEASETHRESHOLD, "Stablecoin profit below threshold.");
 
-      uint256 profit = contractStableCoinProfit;
-//      contractStableCoinProfit = 0; handled below
-      // get USDC
-      uint256 _withdrawal = withdrawProfitsFromLending(); // todo--confirm correct function
-
-      // transfer USDC to ETH
-
-        // uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
+        uint256 profit = contractStableCoinProfit;
+        // get USDC
+        uint256 _withdrawal = withdrawProfitsFromLending();
         usdc.approve(address(router), _withdrawal);
-        // todo--this is failing and I don't knw why
         (uint256 stableCoinReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, profitReceiver, router, swapSlippage);
-
-//        emit IntentionToSwap(_withdrawal, usdc.balanceOf(address(this)));
-
-        emit CoinsReleasedToOwner(ETHSent, stableCoinReceived, block.timestamp);
-
-      // todo -- remove old way of transferring
-//      (bool res,) = profitReceiver.call{value : profit}("Releasing profits.");
-//      require(res, "Failed to release profits to owner"); // todo -- what about gas fees?
+        emit CoinsReleasedToProfitReceiver(ETHSent, stableCoinReceived, profitReceiver, block.timestamp);
   }
 
-    // todo -- refector and combine with: retrieveLentStablecoins
-    function withdrawProfitsFromLending() internal returns(uint256){
-        uint256 balanceShares = yUSDC.balanceOf(address(this));
-        uint256 shareOfShares = contractStableCoinProfit * balanceShares / totalStableCoin;
-
-        totalStableCoin = totalStableCoin - contractStableCoinProfit; // amount invested, not active balance
-        contractStableCoinProfit = 0;
-
-        yUSDC.withdraw(shareOfShares);
-        usdc.transfer(address(this), shareOfShares);
-//        usdc.transfer(msg.sender, shareOfShares);
-        //todo -- confirm that contractStableCoinProfit and shareOfShares --using two different values--won't cause conflict
-        // emit event?
-        return shareOfShares;
-  }
 
 
   function lendStableCoin(uint256 _amount) internal {

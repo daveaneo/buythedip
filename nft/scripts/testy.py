@@ -63,10 +63,10 @@ def test_do_tests_in_order():
     pass
     deploy_and_create()
     # verify_packing()
-    # contract_rewards_and_fees_for_contract_owner()
-    # contract_rewards_and_fees_for_NFT_owner()
-    # destroyAndRefund()
-    # redip_test()
+    contract_rewards_and_fees_for_contract_owner()
+    contract_rewards_and_fees_for_NFT_owner()
+    destroyAndRefund()
+    redip_test()
     test_stake_token()
     # todo -- exploitatoin tests
 
@@ -85,6 +85,7 @@ def deploy_and_create():
         )
 
         print_test('BuyTheDip Deployed:')
+        time.sleep(15)
         assert btd is not None
         BTD_DEPLOYED = True
         dip_staking = DipStaking.deploy(btd.address, {"from": dev}, publish_source=False)
@@ -334,12 +335,12 @@ def test_stake_token():
     perform_upkeep()
     assert btd.ownerOf(_id) == dev.address, f"dev does not own NFT"
     btd.safeTransferFrom(dev, dip_staking.address, _id, {"from": dev})
+    time.sleep(35)
     print_test("dip_staking should be new NFT owner")
     assert btd.ownerOf(_id) == dip_staking.address, f'Transfer to dip_staking has failed. \nNFTowner: {btd.ownerOf(_id)}\ndipStaking: {dip_staking.address}'
 
 
     # ✓ test dipStaking generates TotalStakingEnergy as time passes
-    time.sleep(35)
     energy = dip_staking.getTotalStakingEnergy()
     print_test('Sending NFT to DipStaking gives it energy:')
     assert energy > 0, f'energy: {energy} <-- 0'
@@ -357,7 +358,7 @@ def test_stake_token():
 
     # ✓ dipstaking gets profit for contract owner
     bal_before = dev.balance()
-    dip_staking.withdrawRewardsForOwners({"from": dev})
+    dip_staking.withdrawRewardsForPrimaryProfitReceiver({"from": dev})
     time.sleep(15)
     bal_after = dev.balance()
     print_test("contract owner gets a profit in staking")
@@ -419,10 +420,10 @@ def verify_packing():
     assert res == True
 
 
-    # todo -- dipstaking packing
-    print_test("packing on DipStaking works: ")
-    # res = dip_staking.verifyPacking()
-    assert res == True
+    # # dipStaking doesn't have packing. Only structs.
+    # print_test("packing on DipStaking works: ")
+    # # res = dip_staking.verifyPacking()
+    # assert res == True
 
 
 
