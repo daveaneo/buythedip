@@ -77,6 +77,7 @@ class UnconnectedApp extends Component {
     });
   }
 
+
   initWeb3(provider) {
     const web3 = new Web3(provider);
 

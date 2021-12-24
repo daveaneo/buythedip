@@ -11,8 +11,8 @@ const initData = {
   btnText: "View All",
 };
 
-const buyTheDipAddress = "0x00aC63F453e1bAE95eeFDa74937b2063FD71615C";
-const dipStakingAddress = "0x9a03097B1F966aF8a5964D58e23f1a636d306015";
+const buyTheDipAddress = "0x5cf87D677FC068be8E0329825C44168A6c51a3F1";
+const dipStakingAddress = "0x705A18c726c53114f9A0FDACe1D53CFf85725002";
 //let ENDPOINT_ETH = "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";

@@ -892,10 +892,10 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         uint256 _RADIUS = 78; // 80 - 2
         uint256 _latestPrice = uint256(getLatestPrice());
         uint256 _circleRadius;
-        if (_myData.isWaitingToBuy==1) {
+        if (_myData.isWaitingToBuy==0) { // full radius if dip bought
             _circleRadius = _RADIUS;
         }
-        else {
+        else { // partial radius if waiting to buy
             _circleRadius = (_latestPrice > ((_myData.dipValue)*100/(100 - _myData.dipPercent))) ? 0 : uint256(_RADIUS*(100 - 100*(_latestPrice - _myData.dipValue)/_latestPrice)/100); // temp, check for negative
         }
         string memory mainImage;
