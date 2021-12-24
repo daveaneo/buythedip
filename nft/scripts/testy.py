@@ -62,8 +62,8 @@ def print_test(s):
 
 def test_do_tests_in_order():
     pass
-    deploy_and_create()
-    perform_upkeep()
+    set_profit_receiver_as_dipstaking()
+    # deploy_and_create()
     # verify_packing()
     # contract_rewards_and_fees_for_contract_owner()
     # contract_rewards_and_fees_for_NFT_owner()
@@ -488,3 +488,14 @@ def print_all_dip_levels():
     for i in range(total_tokens):
 #        print(f'{i}) dipLevel:  {btd.tokenIdToDipLevel(i)}')
         pass
+
+
+def set_profit_receiver_as_dipstaking():
+    dev = accounts.add(config["wallets"]["from_key"])
+    btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
+    ds = DipStaking[len(DipStaking) - 1]
+    print(f'Setting ProfitReceiver...')
+    tx = btd.setProfitReceiver(ds.address, {"from": dev});
+    print_test("Profit receiver id dipstaking")
+    assert ds.address == btd.profitReceiver({"from": dev}), f'failed to set profit receiver correctly: {ds.address}'
+
