@@ -28,7 +28,7 @@ class Hero extends Component {
             <div className="col-12 col-md-6 col-lg-7">
               <span>{this.state.data.pre_heading}</span>
               <h1 className="mt-4">{this.state.data.heading}</h1> <h3 style={{color:'red'}}>RINKEBY TESTNET ONLY</h3>
-              <p>{this.state.data.content}</p>
+              <p className="yellow-color-font">{this.state.data.content}</p>
               {/* Buttons */}
               <div className="button-group">
                 <a className="btn btn-bordered-white" href="#mint">

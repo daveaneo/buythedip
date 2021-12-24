@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import Web3 from "web3";
 import abiBTD from "../../abi/BuyTheDipNFT.json";
 import Contract from "web3-eth-contract";
+import "./style.css"
 
 const initData = {
   pre_heading: "Tasty NFTs",
@@ -83,14 +84,26 @@ class Stats extends Component {
     return (
       <section className="hero-section">
         <div className="container">
-          <ul> <h1>Stats</h1>
-          <li> Total Loans: ${this.numberWithCommas(this.state.totalLoans)} </li>
-          <li> Total NFTs:  {this.state.tokens}</li>
-          <li> BTD Contract Address:  {buyTheDipAddress}</li>
-          <li> Staking Address:  {dipStakingAddress}</li>
-          </ul>
-
+        <h1>Stats</h1>
+        <div className="flex-column">
+          <div className="flex-row">
+              <div className="stat-category"> Total Loans: </div>
+              <div className="stat-amount"> ${this.numberWithCommas(this.state.totalLoans)} </div>
+          </div>
+          <div className="flex-row">
+              <div className="stat-category"> Total NFTs: </div>
+              <div className="stat-amount"> {this.state.tokens} </div>
+          </div>
+          <div className="flex-row">
+              <div className="stat-category"> BTD Contract Address: </div>
+              <div className="stat-amount"> {buyTheDipAddress} </div>
+          </div>
+          <div className="flex-row">
+              <div className="stat-category"> Staking Address: </div>
+              <div className="stat-amount"> {dipStakingAddress} </div>
+          </div>
         </div>
+      </div>
         {/* Shape */}
         <div className="shape">
           <svg

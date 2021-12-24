@@ -2,8 +2,13 @@
     max-width:30em;
     text-align:justify;
     margin:1em;
+    color: #d3cd54;
 }
 
+.yellow-color-font {
+color: #d3cd54
+/*color: #d3cd54 */
+}
 
 /*
 .section>div:nth-child(odd){
