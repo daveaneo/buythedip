@@ -66,7 +66,6 @@ library UniswapHelpers {
             minTokensToReceive = receivable * (10000 - _swapSlippage)/10000;
         }
 
-        // todo: For whatever reason, this is not working correctly when using pancakeswap -- still?
         uint256[] memory amounts = _router.swapExactETHForTokens{value: ethAmount}( // ethAmount, path, to, block.timestamp ){ //ExactTokensForETHSupportingFeeOnTransferTokens(
             minTokensToReceive,
             path,
@@ -134,10 +133,8 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     uint256 public reservedFundsForInactiveStakers=0; // inactive Stakers
     uint256 public reservedFundsForOwners=0;
     uint256 public ownersCutPercentage=2500; // out of 10,000 (100%)
-
-    // todo create setFunctions for: ownersCutPercentage, "owners" address (founders?); VIP
-    uint256 public MinStakingTime = 0; //60*60*24*7; // 1 week -- todo: update
-    address primaryProfitReceiver;
+    uint256 public MinStakingTime = 0; // 60*60*24*7; // 1 week -- todo change times, set function
+    address public primaryProfitReceiver;
 
     event FundsWithdrawnToNFTStaker(
         uint256 amount,
@@ -208,11 +205,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         uint256 _total = 0;
         for(uint256 i = 0; i < activeNFTArray.length; i++){ // is activeNFTArray.length dynamic here?
             uint256 _id = activeNFTArray[i];
-            if(BTD.getEnergy(_id) + stakers[_id].stakeStartTimestamp > block.timestamp){
+            if(BTD.getProperty(_id, 2) + stakers[_id].stakeStartTimestamp > block.timestamp){
                 _total += block.timestamp - stakers[_id].stakeStartTimestamp;
             }
             else {
-                _total += BTD.getEnergy(_id);
+                _total += BTD.getProperty(_id, 2);
             }
         }
         return _total;
@@ -222,11 +219,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         @param _id -- id of NFT. Must be previous owner to call
       */
     function unstake(uint256 _id) external {
-        require(msg.sender == stakers[_id].previousOwner, "Not owner.");
-        require(stakers[_id].stakeStartTimestamp + MinStakingTime <= block.timestamp, "Minimum staking time not met.");
+        require(msg.sender == stakers[_id].previousOwner, "Not owner."); // dev: Not owner
+        require(stakers[_id].stakeStartTimestamp + MinStakingTime <= block.timestamp, "Minimum staking time not met."); // dev: Minimum staking time not met
 
         withdrawRewards(_id);
-        BTD.approve(stakers[_id].previousOwner, _id); // todo -- necessary?
+//        BTD.approve(stakers[_id].previousOwner, _id); // todo -- necessary?
         BTD.safeTransferFrom(address(this), stakers[_id].previousOwner, _id, "");
 
         // Remove from array
@@ -286,12 +283,12 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         bool popped = false;
         uint256 activeNFTArrayIndex=0;
         // if out of energy
-        if(BTD.getEnergy(_tokenId) + stakers[_tokenId].stakeStartTimestamp < block.timestamp){
+        if(BTD.getProperty(_tokenId, 2) + stakers[_tokenId].stakeStartTimestamp < block.timestamp){
             BTD.setEnergy(_tokenId, 0);
             for(uint256 i=0; i<activeNFTArray.length;i++){
                 if(activeNFTArray[i]==_tokenId){
                     activeNFTArray[i] = activeNFTArray[activeNFTArray.length - 1];
-                    activeNFTArray.pop(); // todo -- will cause conflict with other function. need to rememedy
+                    activeNFTArray.pop();
                     popped = true;
                     break;
                 }
@@ -299,7 +296,7 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
         }
         else {
             stakers[_tokenId].stakeStartTimestamp = uint64(block.timestamp);
-            BTD.setEnergy(_tokenId, BTD.getEnergy(_tokenId) - getActiveEnergyOfToken(_tokenId));
+            BTD.setEnergy(_tokenId, BTD.getProperty(_tokenId, 2) - getActiveEnergyOfToken(_tokenId));
         }
         return popped;
     }
@@ -309,11 +306,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
       */
     function getActiveEnergyOfToken(uint256 _id) public view returns(uint256){
             uint256 _energy;
-            if(BTD.getEnergy(_id) + stakers[_id].stakeStartTimestamp > block.timestamp){
+            if(BTD.getProperty(_id, 2) + stakers[_id].stakeStartTimestamp > block.timestamp){
                 _energy = block.timestamp - stakers[_id].stakeStartTimestamp;
             }
             else {
-                _energy = BTD.getEnergy(_id);
+                _energy = BTD.getProperty(_id, 2);
             }
             return _energy;
     }
@@ -321,12 +318,11 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     /** @dev Flush all staked NFTs that have used up their energy
       */
     function flushInactive() internal {
-//        uint256 _totalEnergy = getTotalStakingEnergy(); // todo-- do we need to recalculate this in the for loop?
         bool popped = false;
         uint256 index;
 
         for(uint256 i = 1; i < activeNFTArray.length + 1; i++){ // is activeNFTArray.length dynamic here?
-            if(BTD.getEnergy(activeNFTArray[i]) + stakers[i].stakeStartTimestamp < block.timestamp){
+            if(BTD.getProperty(activeNFTArray[i], 2) + stakers[i].stakeStartTimestamp < block.timestamp){
                 index = i - 1;
                 // Here, we shift the index because of [] popping
                 // Being sure not to go beyond the array or miss
@@ -368,7 +364,6 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
 
     /** @dev Upkeep when receiving NFTs
       */
-//    function stake(uint256 _id) external returns(bool) {
     function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes memory _data) external override returns(bytes4){
           require(msg.sender==address(BTD), string(abi.encodePacked(msg.sender)));
           require(BTD.qualifiesForStaking(_tokenId)==true,"Not qualified for staking");
@@ -381,13 +376,12 @@ contract DipStaking is Ownable, ERC721TokenReceiver  {
     }
 }
 
-// VRFConsumerBase,
 contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     uint256 public tokenCounter;
 
     mapping(uint256 => uint256) public tokenIdToPackedData; // compressed data for NFT
 
-    // todo -- could pack these differently. Pros and cons?
+    // todo -- could pack these differently (not 256). Pros and cons?
     struct Data {
         uint256 dipValue;
         uint256 stableCoinAmount;
@@ -396,23 +390,26 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         uint256 dipLevel;
         uint256 isWaitingToBuy;
     }
-
     enum DataProperties {DipValue, StableCoinAmount, Energy, DipPercent, DipLevel, IsWaitingToBuy}
 
+    // todo -- set some to private?
     uint256 public highestDip = 0;
     uint256 public swapSlippage = 10000; // full slippage
     uint256 public totalStableCoin = 0;
+    uint256 public contractStableCoinProfit;
+    address public profitReceiver;
 
     uint256 private checkUpkeepInterval = 60;
     uint256 private lastTimeStamp;
     uint256 private MINCOINDEPOSIT = 10**14;
     uint256 private EARLYWITHDRAWALFEEPERCENT = 300; // (out of 100*100)
     uint256 private NORMALWITHDRAWALFEEPERCENT = 100; // (out of 100*100)
-    uint256 private MINTFEE = 10**12; // todo: add this to account and make sure can withdraw
+    uint256 private MINTFEE = 10**12;
     uint256 private STABLECOINDUSTTHRESHOLD = 10**6/10; //10 cents
     uint256 private PROFITRELEASETHRESHOLD = 10**16;
-    address public profitReceiver;
-    uint256 public contractStableCoinProfit;
+
+
+    // todo --- consider creating: minDipPercent ( createCollectible )
 
     enum ConfigurableVariables { SwapSlippage,
         CheckUpkeepInterval, MinCoinDeposit, EarlyWithdrawalFeePercent, NormalWithdrawalFeePercent,
@@ -436,6 +433,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 //    address StableCoinAddress = address(); // USDC, Ethereum Mainnet
 
 
+    // Swap Routers
 //  Rinkeby
     IUniswapV2Router02 router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D); // testnet
     address factory = address(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f); // testnet
@@ -454,8 +452,10 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 //    address factory = address(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73); // BSC Main
 //    address StableCoinAddress = address(0x3B00Ef435fA4FcFF5C209a37d1f3dcff37c705aD); // BUSD? CONFIRM?
 
+
     IERC20 usdc = IERC20(StableCoinAddress);
 
+    // Chainlink Price feeds
 //    AggregatorV3Interface internal priceFeed;
 //    AggregatorV3Interface internal priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419) // ETH/USD, Ethereum mainnet
     AggregatorV3Interface internal priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e); // ETH/USD, Rinkeby (Ethereum testnet)
@@ -464,9 +464,8 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 //    AggregatorV3Interface internal priceFeed = AggregatorV3Interface(0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE); // BNB/USD, bsc mainnet
 
 
-    address public addy;
+//    address public addy;
 
-        // todo-- this should have more info, like address or tokenId
     event CoinsReleasedToOwner(
         uint256 amountETH,
         uint256 valueInUSD,
@@ -482,23 +481,27 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         uint256 date
     );
 
-
     event CollectibleCreated(
-        uint256 indexed _id,
+        uint256 _id,
         uint256 data,
         uint256 date
     );
 
+    event NFTBurned(
+        uint256 _id,
+        address burner,
+        uint256 date
+    );
 
     event Received(
         address sender,
         uint256 amount
     );
 
-    // todo-- helper event to display information
-    event IntentionToSwap(
-        uint256 amountToSwap,
-        uint256 amountInAccount
+    event ReleaseInformation(
+        uint256 InformationA,
+        uint256 InformationB,
+        uint256 InformationC
     );
 
 
@@ -560,7 +563,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
         @param _myData -- 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
       */
-    function _unpackData(uint256 _myData) public pure returns (Data memory){
+    function _unpackData(uint256 _myData) internal pure returns (Data memory){
 
         uint256 _dipValue = uint256(uint96(_myData));
         uint256 _stableCoinAmount = uint256(uint96(_myData >> 96));
@@ -600,16 +603,16 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     // todo: Create liquidity pool for USDC on pancakeswap BSC testnet
     function createCollectible(uint256 percentDrop)
         public payable returns (bytes32){
-            require (msg.value >= MINCOINDEPOSIT + MINTFEE, "Not enough native coin.");
+            require (msg.value >= MINCOINDEPOSIT + MINTFEE); // dev: Not enough native coin
             require(percentDrop < 100, "Percent X must conform to: 10 <= X < 100"); // todo: adjust 10% after testing
-            updateAllBalances();
+            updateAllBalances(); // todo --consider creating counterBalance
             _safeMint(msg.sender, tokenCounter);
             // MINTFEE and msg.value gets converted to stablecoin and sent to vault
-            (, uint256 stablecoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
+            (, uint256 stableCoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
 
             Data memory _myData = Data( {
                 dipValue:(100 - percentDrop) * getLatestPrice() / 100,
-                stableCoinAmount:(msg.value - MINTFEE) * stablecoinReceived/ (msg.value),
+                stableCoinAmount:(msg.value - MINTFEE) * stableCoinReceived/ (msg.value),
                 energy:0,
                 dipPercent:percentDrop,
                 dipLevel:0,
@@ -617,26 +620,22 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
             });
 
             tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
-            contractStableCoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
+            contractStableCoinProfit += MINTFEE * stableCoinReceived/ (msg.value);
             require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
-            lendStableCoin(stablecoinReceived);
+            lendStableCoin(stableCoinReceived);
 
-            // Update highestDip if needed
             if(_myData.dipValue > highestDip){
                 highestDip = _myData.dipValue;
             }
 
-            totalStableCoin += stablecoinReceived; //tokenIdToStableCoin[tokenCounter];
+            totalStableCoin += stableCoinReceived;
             _setTokenURI(tokenCounter, tokenURI(tokenCounter));
             emit CollectibleCreated(tokenCounter, tokenIdToPackedData[tokenCounter], block.timestamp);
 
             tokenCounter = tokenCounter + 1;
-
             if (contractStableCoinProfit > PROFITRELEASETHRESHOLD) {
                 releaseOwnerProfits(); // for contract, not NFTHolder
             }
-
-
     }
 
     // todo: combine shared features from createCollectible
@@ -656,14 +655,14 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         _myData.dipValue = (100 - _myData.dipPercent) * getLatestPrice() / 100;
         _setTokenURI(_tokenId, tokenURI(_tokenId));
 
-        (, uint256 stablecoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
-        _myData.stableCoinAmount = (msg.value - MINTFEE) * stablecoinReceived/ (msg.value);
-        contractStableCoinProfit += MINTFEE * stablecoinReceived/ (msg.value);
+        (, uint256 stableCoinReceived) = UniswapHelpers._swapEthForTokens(msg.value, StableCoinAddress, address(this), router, swapSlippage);
+        _myData.stableCoinAmount = (msg.value - MINTFEE) * stableCoinReceived/ (msg.value);
+        contractStableCoinProfit += MINTFEE * stableCoinReceived/ (msg.value);
 
         require(_myData.stableCoinAmount > 0, "Error! No tokens bought.");
 
-        lendStableCoin(stablecoinReceived);
-        totalStableCoin += stablecoinReceived;
+        lendStableCoin(stableCoinReceived);
+        totalStableCoin += stableCoinReceived;
 
         _myData.isWaitingToBuy = 1;
 
@@ -672,7 +671,7 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         }
 
         tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
-        // Emit LimitOrderCreated
+        // todo Emit LimitOrderCreated, Redip, ...
     }
 
 
@@ -681,11 +680,11 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         return _myData.isWaitingToBuy==0 && _myData.energy > 0;
     }
 
-
-    function getEnergy(uint256 _tokenId) external view returns(uint256) {
-        Data memory _myData = unpackData(_tokenId);
-        return _myData.energy;
-    }
+//    // todo --replace with getProperty in dipStaking
+//    function getEnergy(uint256 _tokenId) external view returns(uint256) {
+//        Data memory _myData = unpackData(_tokenId);
+//        return _myData.energy;
+//    }
 
     function getProperty(uint256 _tokenId, uint256 property) external view returns(uint256) {
         Data memory _myData = unpackData(_tokenId);
@@ -728,6 +727,8 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     }
 
 
+    // todo -- consider creating a negative balance to avoid updating everyone elses -- not a simple calculation
+    // todo -- ie, a new token is minted, and instead of updating every single balance, the amount it would gain is tracked and reversed
     /** @dev Update balances with new interest values
       */
     function updateAllBalances() internal {
@@ -736,19 +737,23 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         uint256 _newIndividialBalance;
         Data memory _myData;
 
+        // update contractStableCoinProfit
+        _newIndividialBalance = totalStableCoin==0 ? 0 : contractStableCoinProfit * yUSDC.balanceOf(address(this)) / totalStableCoin;
+        _addedTokens = _newIndividialBalance > _myData.stableCoinAmount ? _newIndividialBalance - _myData.stableCoinAmount : 0;
+        if(_addedTokens > STABLECOINDUSTTHRESHOLD ){
+            contractStableCoinProfit = _newIndividialBalance;
+            _newTotal += _addedTokens;
+        }
 
-        // todo -- add contractStableCoinProfit update here
         for(uint256 i = 0; i < tokenCounter;i++){
             _myData = unpackData(i);
             if(_myData.isWaitingToBuy==1){
                 _newIndividialBalance = getStableCoinBalanceGivenId(i);
-
                 // todo -- will thise ever be negative? If so, ramifications?
-                // todo -- Have threshold to ignore dust.
                 _addedTokens = _newIndividialBalance > _myData.stableCoinAmount ? _newIndividialBalance - _myData.stableCoinAmount : 0;
                 if(_addedTokens > STABLECOINDUSTTHRESHOLD ){
                     _myData.stableCoinAmount = _newIndividialBalance;
-                    _newTotal += _addedTokens; // todo --this seems a little strange
+                    _newTotal += _addedTokens;
                     tokenIdToPackedData[i] = packDataStructure(_myData);
                 }
             }
@@ -756,27 +761,26 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         totalStableCoin = _newTotal;
     }
 
-
-    // todo -- no need to recalculate balances after destroying
-    // protect existing accounts from sharing their rewards. This will be expensive!
+    /** @dev Functions like breaking a piggy bank. Burns NFT and retrieves contents, subjec to a early-withdrawal fee
+        @param _tokenId -- 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
+      */
     function destroyAndRefund(uint256 _tokenId) public {
         require(msg.sender == ownerOf(_tokenId), "Must be token owner.");
         Data memory _myData = unpackData(_tokenId);
 
-        if (_myData.dipValue <= getLatestPrice()){
+        if (getLatestPrice() <= _myData.dipValue){
             buyTheDip(_tokenId);
         }
-        // buy with penalty
         else {
             // get stablecoin amount after penalty
             uint256 _withdrawal = retrieveLentStablecoins(_tokenId, EARLYWITHDRAWALFEEPERCENT);
             if(_withdrawal > 0) {
                 usdc.approve(address(router), _withdrawal);
-//                IERC20(StableCoinAddress).approve(address(router), _withdrawal);
-                (uint256 ETHSent, uint256 USDTReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
+                (uint256 stableCoinSent, uint256 ETHReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
+                emit CoinsReleasedToOwner(ETHReceived, stableCoinSent, _tokenId, ownerOf(_tokenId), block.timestamp);
             }
         }
-//        approve(previousOwner[_id], _id); // todo -- necessary?
+        NFTBurned(_tokenId, ownerOf(_tokenId), block.timestamp);
         safeTransferFrom(msg.sender, address(0x000000000000000000000000000000000000dEaD), _tokenId, "burn NFT");
     }
 
@@ -811,14 +815,13 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     function buyTheDip(uint256 _tokenId) internal {
         // Confirm price
         Data memory _myData = unpackData(_tokenId);
-        require(_myData.dipValue <= getLatestPrice(), 'Price above dipLevel');
+        require(getLatestPrice() <= _myData.dipValue, 'Price above dipLevel');
 
         uint256 _withdrawal = retrieveLentStablecoins(_tokenId, NORMALWITHDRAWALFEEPERCENT);
-        //todo: (ETHSent, USDTReceived) may be reversed
         usdc.approve(address(router), _withdrawal);
-        (uint256 USDTReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
+        (uint256 stableCoinSent, uint256 ETHReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, ownerOf(_tokenId), router, swapSlippage);
 
-        emit CoinsReleasedToOwner(ETHSent, USDTReceived, _tokenId, ownerOf(_tokenId), block.timestamp);
+        emit CoinsReleasedToOwner(ETHReceived, stableCoinSent, _tokenId, ownerOf(_tokenId), block.timestamp);
         if (_myData.dipLevel < 7) { _myData.dipLevel += 1; }
 
         _myData.energy += 86400 + _myData.stableCoinAmount * _myData.dipLevel  * (_myData.dipPercent **2) / 10000; // todo -- choose energy formula
@@ -842,46 +845,44 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     }
 
     function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
-        upkeepNeeded = (block.timestamp - lastTimeStamp) > checkUpkeepInterval && highestDip <= getLatestPrice();
+        upkeepNeeded = (block.timestamp - lastTimeStamp) > checkUpkeepInterval && getLatestPrice() <= highestDip;
         // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
+    }
+
+    function checkUpkeepView(bytes calldata /* checkData */) external view returns (bool upkeepNeeded) {
+        upkeepNeeded = (block.timestamp - lastTimeStamp) > checkUpkeepInterval && getLatestPrice() <= highestDip;
+        return upkeepNeeded;
     }
 
     function performUpkeep(bytes calldata /* performData */) external override {
         // todo -- update
-//        performUpkeepTest(); // Putting this here to make the functionality more legit. It is still to develop fully
+        performUpkeepTest(); // Putting this here to make the functionality more legit. It is still to develop fully
     }
 
-    function performUpkeepTest() external {
+    function performUpkeepTest() public {
         lastTimeStamp = block.timestamp;
-//        uint256 _highestDip = ~uint256(0); // todo: should this be the global highestDip
         uint256 latestPrice = getLatestPrice();
         bool dipBought = false;
         Data memory _myData;
 
         for(uint256 i=0;i<tokenCounter;i++){
             _myData = unpackData(i);
-            if (_myData.isWaitingToBuy == 1 && _myData.dipValue <= latestPrice) {
+            if (_myData.isWaitingToBuy == 1 && latestPrice <= _myData.dipValue) {
                 buyTheDip(i);
                 dipBought = true;
             }
         }
 
         if(dipBought){
-            highestDip = getHighestDip();
-        }
-    }
-
-    function getHighestDip() internal returns(uint256){
-        uint256 _highestDip = 0;
-        Data memory _myData;
-        for(uint256 i=0;i<tokenCounter;i++){
-            _myData = unpackData(1);
-            if ( _myData.dipValue > highestDip) {
-                highestDip = _myData.dipValue;
+            uint256 _highestDip = 0;
+            for(uint256 i=0;i<tokenCounter;i++){
+                _myData = unpackData(i);
+                if ( _myData.dipValue > highestDip) {
+                    highestDip = _myData.dipValue;
+                }
             }
+            highestDip =  _highestDip;
         }
-        return _highestDip;
-
     }
 
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
@@ -897,7 +898,6 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         else {
             _circleRadius = (_latestPrice > ((_myData.dipValue)*100/(100 - _myData.dipPercent))) ? 0 : uint256(_RADIUS*(100 - 100*(_latestPrice - _myData.dipValue)/_latestPrice)/100); // temp, check for negative
         }
-//        uint256 _myData.energy = tokenIdToEnergy[_tokenId];
         string memory mainImage;
         mainImage = string(abi.encodePacked(
             "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='175' cy='200' r='100' /%3E ",
@@ -905,32 +905,8 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
             "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E"
          ));
 
-        // Waiting to buy dip
-//        if (_myData.isWaitingToBuy==true){
-//            mainImage = string(abi.encodePacked(
-////                "%3Ccircle cx='175' cy='225' r='100' stroke='black' stroke-width='3' stroke-dasharray='15' fill='white' /%3E",
-////                "%3Ccircle cx='175' cy='225' r='", uint2str(uint256(_circleRadius)) ,"' stroke='' stroke-width='0' fill='red' /%3E"
-////                "%3Ccircle style='fill:#ffffff;stroke:#0045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='85' cy='85' r='100' /%3E",
-////                "%3Ccircle style='fill:#ffffff;stroke:#000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='85' cy='85' r='", uint2str(uint256(_circleRadius))  ,"' /%3E"
-//
-//                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' id='path846' cx='175' cy='200' r='100' /%3E ",
-//                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' id='path846-5' cx='175' cy='200' r='80' /%3E",
-//                "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E"
-//
-//            ));
-//        }
-        // Dip Bought
-        if (_myData.isWaitingToBuy==1) {
+        if (_myData.isWaitingToBuy==0) { // not waiting to buy, ie already bought the dip
             mainImage = string(abi.encodePacked(mainImage,
-              // Star -- Temporary
-                // DIP
-//                "%3Ccircle style='fill:%23ffffff;stroke:%230045bb;stroke-width:1.38;stroke-linejoin:round;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none' cx='175' cy='200' r='100' /%3E ",
-//                "%3Ccircle style='fill:%23ffffff;stroke:%23000000;stroke-width:4;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.32' cx='175' cy='200' r='80' /%3E",
-//                "%3Ccircle cx='175' cy='200' r='", uint2str(_circleRadius) ,"' stroke='' stroke-width='0' fill='green' /%3E",
-//
-                // Star
-//              "%3Cpolygon points='200,110 140,298 290,178 110,178 260,298' ",
-//              "style='fill:gold;stroke:purple;stroke-width:5;fill-rule:nonzero;' /%3E ",
               // Checkmark
               "%3Cpath style='fill:none;stroke:%23ffffff;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1' d='m 139,218 20.4,23.7 56.9,-56.6' /%3E ",
               // Congratulations (text)
@@ -954,11 +930,11 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
            "%3Ctext x='35' y='60'  font-weight='bold' fill='brown'%3EStrike Price:%3C/text%3E",
            "%3Ctext x='175' y='60' font-weight='normal' fill='brown'%3E$", uint2str(uint256(_myData.dipValue), 8, 2), "%3C/text%3E",
                 // Stable Coin Invested (conversion)
-           "%3Ctext x='35' y='75'  font-weight='bold' fill='brown'%3EUSDC Invested:%3C/text%3E"
+           "%3Ctext x='35' y='75'  font-weight='bold' fill='brown'%3EUSDC Balance:%3C/text%3E"
             ));
 
             // Stack-deepness error, so breaking this up
-            SVG = string(abi.encodePacked(SVG,
+            SVG = string(abi.encodePacked(SVG, // todo -- this is showing up incorrectly. consider using _myData.stableCoin (or whatever), and also see why the below is failing
            "%3Ctext x='175' y='75' font-weight='normal' fill='brown'%3E$", uint2str(lendingBalance(_tokenId), 6, 2), " %3C/text%3E",
                 // Energy
            "%3Ctext x='35' y='90' font-weight='bold' fill='brown'%3EEnergy:%3C/text%3E",
@@ -1006,29 +982,57 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
 
     function formatTokenURI(uint256 _tokenId, string memory imageURI) public view returns (string memory) {
         Data memory _myData = unpackData(_tokenId);
-        return string(
-            abi.encodePacked(
-                "data:application/json;base64,",
-                Base64.encode(
-                    string(
-                        abi.encodePacked(
-                            '{"description": "The NFT limit order that earns money!"',
-                            ', "external_url": "https://webuythedip.com"',
-                            ', "image": "',
-                             imageURI, '"',
-                            ', "name": "BuyTheDip"',
-                            // attributes
-                            ', "attributes": [{"display_type": "number", "trait_type": "Dip Level", "value": ',
-                            uint2str(uint256(_myData.dipLevel)),   ' }',
-                            ', {"display_type": "number", "trait_type": "Dip Value", "value": ',
-                            uint2str(uint256(_myData.dipValue)),   ' }',
-                            ']', // End Attributes
-                            '}'
-                        )
-                    )
-                )
-            )
-        );
+        string memory json_str = string(abi.encodePacked(
+            '{"description": "The NFT limit order that earns money!"',
+            ', "external_url": "https://webuythedip.com"',
+            ', "image": "',
+             imageURI, '"',
+            ', "name": "BuyTheDip"',
+            // attributes
+            ', "attributes": [{"display_type": "number", "trait_type": "Dip Level", "value": ',
+            uint2str(uint256(_myData.dipLevel)),   ' }'
+        ));
+        json_str = string(abi.encodePacked(json_str,
+            ', {"display_type": "number", "trait_type": "Strike Price", "value": ',
+            uint2str(uint256(_myData.dipValue)),   ' }',
+            ', {"display_type": "number", "trait_type": "USDC Balance", "value": ',
+            uint2str(uint256(_myData.stableCoinAmount)),   ' }',
+                ', {"display_type": "number", "trait_type": "Energy", "value": ',
+            uint2str(uint256(_myData.energy)),   ' }',
+            ']', // End Attributes
+            '}'
+        ));
+
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(json_str)));
+
+
+//        return string(
+//            abi.encodePacked(
+//                "data:application/json;base64,",
+//                Base64.encode(
+//                    string(
+//                        abi.encodePacked(
+//                            '{"description": "The NFT limit order that earns money!"',
+//                            ', "external_url": "https://webuythedip.com"',
+//                            ', "image": "',
+//                             imageURI, '"',
+//                            ', "name": "BuyTheDip"',
+//                            // attributes
+//                            ', "attributes": [{"display_type": "number", "trait_type": "Dip Level", "value": ',
+//                            uint2str(uint256(_myData.dipLevel)),   ' }',
+//                            ', {"display_type": "number", "trait_type": "Strike Price", "value": ',
+//                            uint2str(uint256(_myData.dipValue)),   ' }',
+//                            ', {"display_type": "number", "trait_type": "USDC Balance", "value": ',
+//                            uint2str(uint256(_myData.stableCoinAmount)),   ' }',
+//                                ', {"display_type": "number", "trait_type": "Energy", "value": ',
+//                            uint2str(uint256(_myData.energy)),   ' }',
+//                            ']', // End Attributes
+//                            '}'
+//                        )
+//                    )
+//                )
+//            )
+//        );
     }
 
     function uint2str(uint256 _i, uint256 _totalDecimals, uint256 _decimalPlaces) internal pure returns (string memory _uintAsString) {
@@ -1141,21 +1145,17 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
     /////////// yUDSC ///////////
     /////////////////////////////
 
-    // todo -- refector and combine with: retrieveLentStablecoins
-    function withdrawProfitsFromLending() internal returns(uint256){
-        uint256 balanceShares = yUSDC.balanceOf(address(this));
-        uint256 shareOfShares = contractStableCoinProfit * balanceShares / totalStableCoin;
-
-        // todo- make sure contractStableCoinProfit is getting size updates
-        totalStableCoin = totalStableCoin - contractStableCoinProfit; // amount invested, not active balance
-        contractStableCoinProfit = 0;
-
-        yUSDC.withdraw(shareOfShares);
-        usdc.transfer(address(this), shareOfShares);
-        // emit event?
-        return shareOfShares;
-    }
-
+//    function withdrawProfitsFromLending() internal returns(uint256){
+//        uint256 balanceShares = yUSDC.balanceOf(address(this));
+//        uint256 shareOfShares = contractStableCoinProfit * balanceShares / totalStableCoin;
+//
+//        totalStableCoin = totalStableCoin - contractStableCoinProfit; // amount invested, not active balance
+//        contractStableCoinProfit = 0;
+//
+//        yUSDC.withdraw(shareOfShares);
+//        usdc.transfer(address(this), shareOfShares);
+//        return shareOfShares;
+//    }
 
 
     // Profits are going to be sent to the staking contract. For simplicity, in native coin.
@@ -1163,6 +1163,12 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
         Data memory _myData = unpackData(_tokenId);
         uint256 balanceShares = yUSDC.balanceOf(address(this)); //yUSDC.wei_balance => ???
         uint256 shareOfShares = _myData.stableCoinAmount * balanceShares / totalStableCoin;
+
+        // todo -- consider implimenting countershares, here
+        // idea: create a counterBalance amount when token is funded (minted or redipped)
+      // this amount is shareOfShares snapshot at time of funding
+      // and subtracted from future shareOfShares amounts
+      // this avoids recalculating everyone's transactions
 
         _myData.stableCoinAmount = 0;
         tokenIdToPackedData[_tokenId] = packDataStructure(_myData);
@@ -1183,40 +1189,59 @@ contract BuyTheDipNFT is ERC721, KeeperCompatibleInterface, Ownable  {
   }
 
     // todo -- make internal after testing
-  function releaseOwnerProfits() public {
+  function releaseOwnerProfits() internal {
         require(contractStableCoinProfit > PROFITRELEASETHRESHOLD, "Stablecoin profit below threshold.");
 
+        // todo --review for reentrancy attack
         uint256 profit = contractStableCoinProfit;
         // get USDC
-        uint256 _withdrawal = withdrawProfitsFromLending();
+        uint256 _withdrawal; { // = withdrawProfitsFromLending();
+            uint256 balanceShares = yUSDC.balanceOf(address(this));
+            uint256 shareOfShares = contractStableCoinProfit * balanceShares / totalStableCoin;
+
+            totalStableCoin = totalStableCoin - contractStableCoinProfit; // amount invested, not active balance
+            contractStableCoinProfit = 0;
+
+            yUSDC.withdraw(shareOfShares);
+            usdc.transfer(address(this), shareOfShares);
+            _withdrawal =  shareOfShares;
+        }
+
         usdc.approve(address(router), _withdrawal);
-        (uint256 stableCoinReceived, uint256 ETHSent) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, profitReceiver, router, swapSlippage);
-        emit CoinsReleasedToProfitReceiver(ETHSent, stableCoinReceived, profitReceiver, block.timestamp);
+        (uint256 stableCoinSent, uint256 ETHReceived) = UniswapHelpers._swapExactTokensForETH(_withdrawal, StableCoinAddress, profitReceiver, router, swapSlippage);
+        emit CoinsReleasedToProfitReceiver(ETHReceived, stableCoinSent, profitReceiver, block.timestamp);
   }
 
 
 
-  function lendStableCoin(uint256 _amount) internal {
-    usdc.approve(address(yUSDC), _amount);
-    yUSDC.deposit(_amount);
-  }
+    function lendStableCoin(uint256 _amount) internal {
+        usdc.approve(address(yUSDC), _amount);
+        yUSDC.deposit(_amount);
+    }
+
 
     function getStableCoinBalanceGivenId(uint256 _tokenId) internal view returns(uint256) {
         Data memory _myData = unpackData(_tokenId);
-//        uint256 amount = tokenIdToStableCoin[_tokenId];
         uint256 balanceShares = yUSDC.balanceOf(address(this));
         return totalStableCoin==0 ? 0 : _myData.stableCoinAmount * balanceShares / totalStableCoin;
-//        uint256 shareOfShares = totalStableCoin==0 ? 0 : _myData.stableCoinAmount * balanceShares / totalStableCoin;
-//        return shareOfShares;
     }
-
 
   function lendingBalance(uint256 _tokenId) public view returns(uint256) {
 //    uint256 price = yUSDC.getPricePerFullShare();
     Data memory _myData = unpackData(_tokenId);
     uint256 price = 1;
     uint256 balanceShares = yUSDC.balanceOf(address(this));
-    return totalStableCoin==0 ? 0 : balanceShares * price * _myData.stableCoinAmount / totalStableCoin;
+    return totalStableCoin==0 ? 0 : balanceShares * price * _myData.stableCoinAmount / totalStableCoin; // todo --determine info here
   }
 
-}
+//  function releaseLendingInfo(uint256 _tokenId) public returns(uint256) {
+////    uint256 price = yUSDC.getPricePerFullShare();
+//    Data memory _myData = unpackData(_tokenId);
+//    uint256 price = 1;
+//    uint256 balanceShares = yUSDC.balanceOf(address(this));
+//    emit ReleaseInformation(balanceShares, yUSDC.getPricePerFullShare(), balanceShares * price * _myData.stableCoinAmount / totalStableCoin);
+//    return totalStableCoin==0 ? 0 : balanceShares * price * _myData.stableCoinAmount / totalStableCoin; // todo --determine info here
+//  }
+
+
+} // end BuyTheDip Contract

@@ -1,4 +1,7 @@
 export const SingleNFT = ({ data }) => {
+  const stakeNFT = async () => {
+    console.log("STAKING..."); // todo --create the actual function here
+ }
   return (
     <div style={{ display: "flex", flexDirection: "row"}}>
       {data.map((item, idx) => {
@@ -38,6 +41,12 @@ export const SingleNFT = ({ data }) => {
                   </div>
                 </div>
               </div>
+              {item.energy > 0 &&
+                <div onClick={() => stakeNFT()} className="btn btn-bordered-white">
+                  <i className="icon-note mr-2" />
+                    STAKE
+                </div>
+              }
             </div>
           </div>
         );

@@ -12,9 +12,8 @@ const initialData = {
   btnText: "View All",
 };
 
-//const buyTheDipAddress = "0x4E0952fAbC59623c57793D4BE3dDb8fAaA11E27A";
-const buyTheDipAddress = "0x538D826935251739E47409990b31c339d1D49749";
-const dipStakingAddress = "0xa3CCd7d5Fc57960a67620985e75EaB232D22E2be";
+const buyTheDipAddress = "0x00aC63F453e1bAE95eeFDa74937b2063FD71615C";
+const dipStakingAddress = "0x9a03097B1F966aF8a5964D58e23f1a636d306015";
 //let ENDPOINT_ETH = "https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_ETH="https://rinkeby.infura.io/v3/415d8f8ad8bf4a179cabd397a48d08ce";
 //let ENDPOINT_MAINNET_ETH="https://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby";
@@ -88,6 +87,8 @@ const MyNFTs = ({ props }) => {
         pattern.description = metadata["description"];
         pattern.asset = "Ether";
         pattern.blockchain = "Ethereum";
+        pattern.stablecoin = metadata["attributes"][2]["value"];
+        pattern.energy = metadata["attributes"][3]["value"];
 
         arrayData.push(pattern);
       } else {

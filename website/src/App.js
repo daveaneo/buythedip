@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { useEffect } from 'react';
 
 // importing MyRouts where we located all of our theme
 import Hero from "./components/Hero/Hero";
@@ -16,6 +17,8 @@ import Stake from "./components/Stake/Stake";
 import Leaderboard from "./components/Leaderboard/Leaderboard";
 import Whitepaper from "./components/Whitepaper/Whitepaper";
 import Header from "./components/Header/Header.js";
+import WrongNetworkDialog from "./components/Dialogs/WrongNetworkDialog";
+
 import { updateWeb3Data, updateIsWrongNetworkOpen } from "./actions";
 import { connect } from "react-redux";
 import { getState } from "./reducer";
@@ -99,6 +102,21 @@ class UnconnectedApp extends Component {
     provider.on("disconnect", () => {
       this.setState({ address: "" });
     });
+
+    const web3 = this.initWeb3(provider);
+    const networkId = await web3.eth.net.getId();
+    if (
+      !(
+        networkId === 4 // rinkeby
+      )
+    ) {
+      this.props.dispatch(updateIsWrongNetworkOpen(true));
+    }
+    else {
+      this.props.dispatch(updateIsWrongNetworkOpen(false));
+    }
+
+
   };
 
   onConnect = async () => {
@@ -111,13 +129,17 @@ class UnconnectedApp extends Component {
 
     if (
       !(
-        networkId === 1 ||
-        networkId === 4 ||
-        networkId === 97 ||
-        networkId === 56
+//        networkId === 1 ||
+//        networkId === 4 || // rinkeby
+//        networkId === 97 ||
+//        networkId === 56
+        networkId === 4 // rinkeby
       )
     ) {
       this.props.dispatch(updateIsWrongNetworkOpen(true));
+    }
+    else {
+      this.props.dispatch(updateIsWrongNetworkOpen(false));
     }
 
     const chainId = await web3.eth.chainId();
@@ -148,7 +170,16 @@ class UnconnectedApp extends Component {
     }
   }
 
-
+    componentDidUpdate(){
+    if(window.ethereum) {
+        window.ethereum.on('chainChanged', () => {
+            window.location.reload();
+        });
+        window.ethereum.on('accountsChanged', () => {
+            window.location.reload();
+        });
+    }
+  }
 
   render() {
 
@@ -173,6 +204,10 @@ class UnconnectedApp extends Component {
 
     return (
       <div>
+        <WrongNetworkDialog
+          onClose={() => this.props.dispatch(updateIsWrongNetworkOpen(false))}
+          isOpen={this.props.isWrongNetworkOpen}
+        />
         <Header
           walletProps={{ connect: this.onConnect, address: this.state.address }}
         />
@@ -187,10 +222,10 @@ class UnconnectedApp extends Component {
             web3Modal: this.web3Modal,
          }}
          />
-        <Stake props={{
+{/*       <Stake props={{
             account: this.state.address,
             web3Modal: this.web3Modal,
-         }} />
+         }} /> */}
         <MyStakedNFTs props={{
             account: this.state.address,
             web3Modal: this.web3Modal,

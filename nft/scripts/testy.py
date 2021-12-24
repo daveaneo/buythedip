@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 # brownie test -s --network rinkeby
 from brownie import BuyTheDipNFT, DipStaking, accounts, config
-from scripts.helpful_scripts import get_breed, fund_with_link
+# from scripts.helpful_scripts import get_breed, fund_with_link
 import time
 import pytest
 from enum import IntEnum
+import brownie
 
 ACCOUNT_TESTING_TWO = "0xAb0517Ed8EED859deD85Bad8018D462f236e2c07"
 
@@ -63,11 +64,11 @@ def test_do_tests_in_order():
     pass
     deploy_and_create()
     # verify_packing()
-    contract_rewards_and_fees_for_contract_owner()
-    contract_rewards_and_fees_for_NFT_owner()
-    destroyAndRefund()
-    redip_test()
-    test_stake_token()
+    # contract_rewards_and_fees_for_contract_owner()
+    # contract_rewards_and_fees_for_NFT_owner()
+    # destroyAndRefund()
+    # redip_test()
+    # stake_token()
     # todo -- exploitatoin tests
 
 #@pytest.fixture
@@ -91,6 +92,7 @@ def deploy_and_create():
         dip_staking = DipStaking.deploy(btd.address, {"from": dev}, publish_source=False)
     else:
         btd = BuyTheDipNFT[-1]
+
 
     for i in range(1):
         t = btd.createCollectible(i * 15, {"from": dev, "amount": 10 ** 15})  # dictionary needed for payables?
@@ -211,6 +213,8 @@ def contract_rewards_and_fees_for_NFT_owner():
     tx = btd.destroyAndRefund(_id, {"from": dev})
     bal_end = dev.balance()
 
+    # print(f'transactions: {tx.events}')
+
     print_test('NFT owner makes profit after destroyAndRefund')
     assert bal_beg < bal_end, f'bal_beg does not increase: {bal_beg} => {bal_end}\ndiff: {bal_end - bal_beg}'
 
@@ -257,10 +261,10 @@ def contract_rewards_and_fees_for_contract_owner():
     end_profit = btd.contractStableCoinProfit()
     final_balance = dev.balance();
 
-    print(f'expecting these two numbers to be equal (start, final): {initial_balance} , {final_balance }')
-    print(f'The difference between them: {final_balance - initial_balance}')
-    print(f'start_profit: {start_profit}')
-    print(f'end_profit: {end_profit}')
+    # print(f'expecting these two numbers to be equal (start, final): {initial_balance} , {final_balance }')
+    # print(f'The difference between them: {final_balance - initial_balance}')
+    # print(f'start_profit: {start_profit}')
+    # print(f'end_profit: {end_profit}')
 
     print_test("Contract makes money when a dip is bought.")
     assert start_profit < end_profit
@@ -299,6 +303,11 @@ def destroyAndRefund():
     initial_balance = dev.balance()
     t = btd.destroyAndRefund(_id, {"from": dev})  # dictionary needed for payables?)
 
+    # print(f'events:')
+    # for k, v in t.events.items():
+    #     print(f'{k}: {v}')
+
+
     print_test("destroyAndRefund call did not fail") # may not be due to gas
     assert t is not None
 
@@ -309,7 +318,7 @@ def destroyAndRefund():
     assert dev.balance() >= initial_balance, f'dev balance decreased. before & after: \n{initial_balance}\n{dev.balance()}'
 
 
-def test_stake_token():
+def stake_token():
     print(f'\n##### Staking Tests #####')
 
     # ✓ test dipStaking receives NFT
@@ -329,7 +338,7 @@ def test_stake_token():
     # configure
     btd.changeConfiguration(ConfigurableVariables.ProfitReleaseThreshold, 10**18, {"from": dev})
 
-
+    # todo--may need to adjust setProfitReceiver
     # ✓ test dipStaking receives NFT
     _id = create_single_collectible(0, 10**15)
     perform_upkeep()
@@ -359,7 +368,7 @@ def test_stake_token():
     # ✓ dipstaking gets profit for contract owner
     bal_before = dev.balance()
     dip_staking.withdrawRewardsForPrimaryProfitReceiver({"from": dev})
-    time.sleep(15)
+    time.sleep(30)
     bal_after = dev.balance()
     print_test("contract owner gets a profit in staking")
     assert bal_after > bal_before, f"bal_before: {bal_before}\nbal_after: {bal_after}\ndiff: {bal_after-bal_before}"
@@ -368,6 +377,7 @@ def test_stake_token():
     # ✓ unstaking returns token, grants funds
     dev.transfer(dip_staking.address, 10**15)
     bal_before = dev.balance()
+    btd.changeConfiguration(ConfigurableVariables.ProfitReleaseThreshold, 10**18, {"from": dev})
     tx = dip_staking.unstake(_id, {"from": dev})
     time.sleep(15)
     bal_after = dev.balance()
@@ -385,10 +395,11 @@ def test_stake_token():
     except Exception as e:
         # print(f'there should be an error we diagnose: {e}') #todo confirm exact revert language
         # print(f'events: {tx.events}')
-        reverted = True;
+        # with brownie.reverts("dev: Minimum staking time not met"): # does not work
+        #     print(f'MINIMUM STAKING TIME NOT MET!!!!')
+        reverted = True
     finally:
         print_test("non whitelisted NFT causes revert on transfer to staking")
-        # todo
         assert reverted, "Transaction failed to revert."
     dip_staking.setBTDAdress(btd.address, {"from": dev})
 
@@ -434,6 +445,7 @@ def create_single_collectible(percent, eth_amount):
     btd = BuyTheDipNFT[len(BuyTheDipNFT) - 1]
     num_of_collectibles = btd.tokenCounter()
     t = btd.createCollectible(percent, {"from": dev, "amount": eth_amount})  # dictionary needed for payables?)
+    time.sleep(15)
 
     assert t is not None
     assert num_of_collectibles + 1 == btd.tokenCounter(), f'{num_of_collectibles +1} != {btd.tokenCounter()}'
