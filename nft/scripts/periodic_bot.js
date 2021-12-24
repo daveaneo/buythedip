@@ -20,7 +20,7 @@ const Web3 = require('web3');
 //var axios = require('axios');
 const BuyTheDip = require('./../build/contracts/BuyTheDipNFT.json');
 require('dotenv').config({path: __dirname + '/.env'});
-const btd_address = "0x14D9aE25843088CBA97cE25941AE430DfAa33A3f";
+const btd_address = "0x00aC63F453e1bAE95eeFDa74937b2063FD71615C";
 const VERBOSE = false;
 
 BuyTheDip.address = btd_address;
