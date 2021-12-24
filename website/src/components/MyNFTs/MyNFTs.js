@@ -5,6 +5,7 @@ import Contract from "web3-eth-contract";
 import { encode, decode } from "js-base64";
 import { SingleNFT } from "./SingleNFT";
 // npm install --save js-base64
+import "./style.css";
 
 const initialData = {
   pre_heading: "My NFTs",
@@ -118,11 +119,13 @@ const MyNFTs = ({ props }) => {
                 <span>{initData.pre_heading}</span>
                 <h3 className="mt-3 mb-0">{initData.heading}</h3>
               </div>
+{/* View All button
               <div className="intro-btn">
                 <a className="btn content-btn" href="/auctions">
                   {initData.btnText}
                 </a>
               </div>
+*/}
             </div>
           </div>
         </div>

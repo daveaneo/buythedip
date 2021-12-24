@@ -39,7 +39,8 @@ export const SingleNFT = ({ data, props }) => {
 
 
   return (
-    <div style={{ display: "flex", flexDirection: "row"}}>
+    <div className="flex-container">
+{/*    <div style={{ display: "flex", flexDirection: "row"}}> */}
       {data.map((item, idx) => {
         return (
           <div key={`auc_${idx}`} className="swiper-slide item" style={{ maxWidth: 350 }}>

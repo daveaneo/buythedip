@@ -123,11 +123,13 @@ const MyNFTs = ({ props }) => {
                 <span>{initData.pre_heading}</span>
                 <h3 className="mt-3 mb-0">{initData.heading}</h3>
               </div>
+{/* View All button
               <div className="intro-btn">
                 <a className="btn content-btn" href="/auctions">
                   {initData.btnText}
                 </a>
               </div>
+*/}
             </div>
           </div>
         </div>

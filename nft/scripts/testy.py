@@ -62,8 +62,8 @@ def print_test(s):
 
 def test_do_tests_in_order():
     pass
-    set_profit_receiver_as_dipstaking()
-    # deploy_and_create()
+    # set_profit_receiver_as_dipstaking()
+    deploy_and_create()
     # verify_packing()
     # contract_rewards_and_fees_for_contract_owner()
     # contract_rewards_and_fees_for_NFT_owner()
