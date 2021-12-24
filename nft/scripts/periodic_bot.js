@@ -23,6 +23,10 @@ require('dotenv').config({path: __dirname + '/.env'});
 const btd_address = "0x14D9aE25843088CBA97cE25941AE430DfAa33A3f";
 const VERBOSE = false;
 
+console.log('address: ', BuyTheDip.address)
+
+process.exit(0);
+
 BuyTheDip.address = btd_address;
 
 var options = {
