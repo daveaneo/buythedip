@@ -1,7 +1,66 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 
-const BASE_URL = "https://my-json-server.typicode.com/themeland/netstorm-json-2/footer";
+//const BASE_URL = "https://my-json-server.typicode.com/themeland/netstorm-json-2/footer";
+
+const my_data = {
+  "img": "/img/bsllc_logo.png",
+  "content": "Providing fair and decentralized services.",
+  "widget_1": "Useful Links",
+  "widget_2": "Community",
+  "widget_3": "Subscribe",
+  "socialData": [
+    {
+      "id": 1,
+      "link": "https://t.me/dipnft",
+      "icon": "fab fa-telegram"
+    },
+    {
+      "id": 2,
+      "link": "https://github.com/daveaneo/buythedip",
+      "icon": "fab fa-github"
+    },
+  ],
+  "widgetData_1": [
+    {
+      "id": 1,
+      "text": "Mint",
+      "link": "#mint"
+    },
+    {
+      "id": 2,
+      "text": "My NFTs",
+      "link": "#mynfts"
+    },
+    {
+      "id": 3,
+      "text": "My Staked NFTs",
+      "link": "#mystakednfts"
+    },
+    {
+      "id": 4,
+      "text": "Leaderboard",
+      "link": "#leaderboard"
+    },
+    {
+      "id": 5,
+      "text": "Whitepaper",
+      "link": "#whitepaper"
+    },
+    {
+      "id": 6,
+      "text": "How It Works",
+      "link": "#howitworks"
+    }
+  ],
+  "widgetData_2": [
+    {
+      "id": 1,
+      "text": "Coming Soon",
+      "link": ""
+    }
+  ]
+}
 
 class Footer extends Component {
     state = {
@@ -11,17 +70,12 @@ class Footer extends Component {
         widgetData_2: []
     }
     componentDidMount(){
-        axios.get(`${BASE_URL}`)
-            .then(res => {
-                this.setState({
-                    data: res.data,
-                    socialData: res.data.socialData,
-                    widgetData_1: res.data.widgetData_1,
-                    widgetData_2: res.data.widgetData_2
-                })
-                // console.log(this.state.data)
-            })
-        .catch(err => console.log(err))
+        this.setState({
+            data: my_data,
+            socialData: my_data.socialData,
+            widgetData_1: my_data.widgetData_1,
+            widgetData_2: my_data.widgetData_2
+        })
     }
     render() {
         return (
@@ -42,7 +96,7 @@ class Footer extends Component {
                                     <div className="social-icons d-flex">
                                         {this.state.socialData.map((item, idx) => {
                                             return (
-                                                <a key={`sd_${idx}`} className={item.link} href="#">
+                                                <a key={`sd_${idx}`} className="" href={item.link}>
                                                     <i className={item.icon} />
                                                     <i className={item.icon} />
                                                 </a>
@@ -59,7 +113,7 @@ class Footer extends Component {
                                     <ul>
                                         {this.state.widgetData_1.map((item, idx) => {
                                             return (
-                                                <li key={`wdo_${idx}`}><a href="#">{item.text}</a></li>
+                                                <li key={`wdo_${idx}`}><a href={item.link}>{item.text}</a></li>
                                             );
                                         })}
                                     </ul>
@@ -73,7 +127,7 @@ class Footer extends Component {
                                     <ul>
                                         {this.state.widgetData_2.map((item, idx) => {
                                             return (
-                                                <li key={`wdo_${idx}`}><a href="#">{item.text}</a></li>
+                                                <li key={`wdo_${idx}`}><a href={item.link}>{item.text}</a></li>
                                             );
                                         })}
                                     </ul>
@@ -102,9 +156,10 @@ class Footer extends Component {
                                 {/* Copyright Area */}
                                 <div className="copyright-area d-flex flex-wrap justify-content-center justify-content-sm-between text-center py-4">
                                     {/* Copyright Left */}
-                                    <div className="copyright-left">©2021 BlockChain Solutions LLC, All Rights Reserved.</div>
+                                    <div className="copyright-left"></div>
+                                    <div className="copyright-right">©2021 BlockChain Solutions LLC,  All Rights Reserved.</div>
                                     {/* Copyright Right */}
-                                    <div className="copyright-right"> Made With <i className="fas fa-heart" /> <a href="#"> </a></div>
+                                    {/* <div className="copyright-right"> Made With <i className="fas fa-heart" /> <a href="#"> </a></div> */}
                                 </div>
                             </div>
                         </div>

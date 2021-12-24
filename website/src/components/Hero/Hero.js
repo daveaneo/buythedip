@@ -5,8 +5,10 @@ const initData = {
   heading: "Buy The Dip",
   content: "Refried Assets and DeFi Bean Company",
   btn_1: "Mint",
-  btn_2: "Stake",
+  btn_2: "My NFTs",
   btn_3: "Whitepaper",
+  btn_4: "Contact",
+
 };
 
 class Hero extends Component {
@@ -33,13 +35,17 @@ class Hero extends Component {
                   <i className="icon-rocket mr-2" />
                   {this.state.data.btn_1}
                 </a>
-                <a className="btn btn-bordered-white" href="#stake">
-                  <i className="icon-note mr-2" />
+                <a className="btn btn-bordered-white" href="#mynfts">
+                  <i className="fas fa-money-check-alt mr-2" />
                   {this.state.data.btn_2}
                 </a>
                 <a className="btn btn-bordered-white" href="#whitepaper">
                   <i className="icon-note mr-2" />
                   {this.state.data.btn_3}
+                </a>
+                <a className="btn btn-bordered-white mt-1" href="https://t.me/dipnft">
+                  <i className="fab fa-telegram mr-2" />
+                  {this.state.data.btn_4}
                 </a>
               </div>
             </div>

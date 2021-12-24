@@ -113,7 +113,7 @@ const MyNFTs = ({ props }) => {
   };
 
   return (
-    <section className="live-auctions-area">
+    <section id="mystakednfts" className="live-auctions-area">
       <div className="container">
         <div className="row">
           <div className="col-12">

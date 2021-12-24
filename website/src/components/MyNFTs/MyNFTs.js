@@ -44,7 +44,6 @@ const MyNFTs = ({ props }) => {
 
   web3 = new Web3(props.web3Modal.connect());
   web3.setProvider(window.ethereum);
-
   const contract = new web3.eth.Contract(abiBTD, buyTheDipAddress);
 
   const getTokenInfo = async (_id) => {
@@ -109,7 +108,7 @@ const MyNFTs = ({ props }) => {
   };
 
   return (
-    <section className="live-auctions-area">
+    <section id="mynfts" className="live-auctions-area">
       <div className="container">
         <div className="row">
           <div className="col-12">
@@ -132,7 +131,7 @@ const MyNFTs = ({ props }) => {
             {/* <div className="swiper-wrapper"> */}
             {/* Single Slide */}
             {/* {console.log("data", data)} */}
-            <SingleNFT data={data} />
+            <SingleNFT data={data} props={props} />
             {/* </div> */}
             <div className="swiper-pagination" />
           </div>

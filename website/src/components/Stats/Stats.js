@@ -55,7 +55,7 @@ class Stats extends Component {
   getTokenCounter() {
     return this.contract.methods
       .tokenCounter()
-      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .call()
       .then((tokens) => {
         this.setState({
           tokens: parseInt(tokens),
@@ -70,7 +70,7 @@ class Stats extends Component {
   getTotalStableCoin() {
     return this.contract.methods
       .totalStableCoin()
-      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .call()
       .then((loans) => {
         this.setState({
           totalLoans: parseFloat(loans/10**6).toFixed(2),

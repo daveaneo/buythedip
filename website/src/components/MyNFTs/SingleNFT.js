@@ -1,7 +1,43 @@
-export const SingleNFT = ({ data }) => {
-  const stakeNFT = async () => {
-    console.log("STAKING..."); // todo --create the actual function here
+import Web3 from "web3";
+import React, { useEffect, useState } from "react";
+import abiBTD from "../../abi/BuyTheDipNFT.json";
+import Contract from "web3-eth-contract";
+
+
+let ENDPOINT_WSS_ETH_TESTNET =
+  "wss://speedy-nodes-nyc.moralis.io/fdb0fa9dd36e9d32bea0738f/eth/rinkeby/ws";
+Contract.setProvider(ENDPOINT_WSS_ETH_TESTNET);
+let web3 = new Web3();
+const buyTheDipAddress = "0x00aC63F453e1bAE95eeFDa74937b2063FD71615C";
+const dipStakingAddress = "0x9a03097B1F966aF8a5964D58e23f1a636d306015";
+
+
+export const SingleNFT = ({ data, props }) => {
+
+    web3 = new Web3(props.web3Modal.connect());
+    web3.setProvider(window.ethereum);
+    const contract = new web3.eth.Contract(abiBTD, buyTheDipAddress);
+
+  const stakeNFT = async (_id) => {
+      // Approve
+    contract.methods
+      .approve(dipStakingAddress, _id)
+      .send({from: props.account})
+      .then((result) => {
+        console.log("result of approve: ", result);
+      });
+
+      // Transfer
+    contract.methods
+      .safeTransferFrom(props.account, dipStakingAddress, _id)
+      .send({from: props.account})
+      .then((result) => {
+        console.log("result of safeTransfer: ", result);
+      });
+    console.log("Done staking.");
  }
+
+
   return (
     <div style={{ display: "flex", flexDirection: "row"}}>
       {data.map((item, idx) => {
@@ -42,7 +78,7 @@ export const SingleNFT = ({ data }) => {
                 </div>
               </div>
               {item.energy > 0 &&
-                <div onClick={() => stakeNFT()} className="btn btn-bordered-white">
+                <div onClick={() => stakeNFT(item.id)} className="btn btn-bordered-white mt-1">
                   <i className="icon-note mr-2" />
                     STAKE
                 </div>

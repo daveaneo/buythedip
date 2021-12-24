@@ -19,7 +19,7 @@ class Leaderboard extends Component {
   }
   render() {
     return (
-      <section className="hero-section">
+      <section id="leaderboard" className="hero-section">
         <div className="container">
         <h1>Leaderboard</h1>
         Coming Soon.

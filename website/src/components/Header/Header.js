@@ -12,6 +12,7 @@ const Header = ({ walletProps }) => {
       >
         <div className="container header">
           {/* Navbar Brand*/}
+          {/*
           <a className="navbar-brand" href="/">
             <img
               className="navbar-brand-sticky"
@@ -19,14 +20,17 @@ const Header = ({ walletProps }) => {
               alt="sticky brand-logo"
             />
           </a>
+          */}
           <div className="ml-auto" />
           {/* Navbar */}
           <ul className="navbar-nav items mx-auto">
+          {/*
             <li className="nav-item dropdown">
               <a className="nav-link" href="/">
                 Home
               </a>
             </li>
+            */}
             {/* <li className="nav-item dropdown">
               <a className="nav-link" href="#">
                 Explore <i className="fas fa-angle-down ml-1" />
@@ -64,11 +68,13 @@ const Header = ({ walletProps }) => {
                 </li>
               </ul>
             </li> */}
+            {/*
             <li className="nav-item">
               <a href="#" className="nav-link">
                 Activity
               </a>
             </li>
+            */}
             {/* <li className="nav-item dropdown">
               <a className="nav-link" href="#">
                 Community <i className="fas fa-angle-down ml-1" />
@@ -128,13 +134,16 @@ const Header = ({ walletProps }) => {
                 </li>
               </ul>
             </li> */}
+            {/*
             <li className="nav-item">
               <a href="#" className="nav-link">
                 Contact
               </a>
             </li>
+            */}
           </ul>
           {/* Navbar Icons */}
+          {/*
           <ul className="navbar-nav icons">
             <li className="nav-item">
               <a
@@ -147,6 +156,7 @@ const Header = ({ walletProps }) => {
               </a>
             </li>
           </ul>
+          */}
           {/* Navbar Toggler */}
           <ul className="navbar-nav toggle">
             <li className="nav-item">

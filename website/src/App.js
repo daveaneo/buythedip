@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { useEffect } from 'react';
+//import { useEffect } from 'react';
 
 // importing MyRouts where we located all of our theme
 import Hero from "./components/Hero/Hero";
@@ -13,7 +13,7 @@ import ModalMenu from "./components/Modal/ModalMenu";
 import Scrollup from "./components/Scrollup/Scrollup";
 import Stats from "./components/Stats/Stats";
 import Mint from "./components/Mint/Mint";
-import Stake from "./components/Stake/Stake";
+//import Stake from "./components/Stake/Stake";
 import Leaderboard from "./components/Leaderboard/Leaderboard";
 import Whitepaper from "./components/Whitepaper/Whitepaper";
 import Header from "./components/Header/Header.js";
@@ -232,7 +232,7 @@ class UnconnectedApp extends Component {
          }} />
         <Leaderboard />
         <Whitepaper />
-        <Auctions />
+{/*        <Auctions /> */}
         <Work />
         <Footer />
         <ModalSearch />

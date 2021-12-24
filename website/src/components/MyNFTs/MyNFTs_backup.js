@@ -58,7 +58,7 @@ class MyNFTs extends Component {
   async getTokenInfo(_id) {
     return this.contract.methods
       .tokenURI(_id)
-      .call({from: "0xfAD4322F3493481aE03995F90bEA8283f119Dd17"})
+      .call()
       .then((info) => {
         dicNFT[_id] = info;
       });
@@ -118,7 +118,6 @@ class MyNFTs extends Component {
 
   async getAllNFTsByOwner() {
     console.log(this.props.props.account, typeof(this.props.props.account));
-    console.log("0xfAD4322F3493481aE03995F90bEA8283f119Dd17");
     if(!this.props.props.account) {return false};
     this.contract.methods
       .getAllNFTsByOwner(this.props.props.account).call({from: this.props.props.account})
