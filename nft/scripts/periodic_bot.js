@@ -56,12 +56,6 @@ console.log("Initiating periodic_bot...");
 const apiUrl = 'https://slack.com/api';
 
 const send = async (message) => {
-//    let messageArgs = {
-//        token: 'xoxb-2327051772129-2382412725733-MqAKEAIYZYusTr1RdnrLHnGn',
-//        channel: 'C02AN31FNS3',
-//        text: message,
-//    };
-//    post(messageArgs);
 };
 
 
